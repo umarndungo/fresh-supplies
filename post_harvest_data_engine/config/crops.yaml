@@ -1,0 +1,50 @@
+# ---------------------------------------------------------------------------
+# Single source of truth for the FOOD crop catalogue.
+#
+# Every module that needs the set of crops, their FOOD classification, market
+# base price (KES/kg), or spoilage fragility reads from this file. Adding a new
+# crop here (and re-running the pipeline) propagates it everywhere.
+#
+#   - food_class:        FOOD / FOOD_GRADE_OIL / NON_EDIBLE
+#   - base_price_kes:    synthetic wholesale base price in KES per kg (the
+#                        market-pricing module adds regional variation + jitter)
+#   - spoilage_frailty:  per-crop baseline loss % contribution (deg. of
+#                        perishability) used by the spoilage label generator
+# ---------------------------------------------------------------------------
+crops:
+  - name: Maize
+    food_class: FOOD
+    base_price_kes: 45.0
+    spoilage_frailty: 7.0
+  - name: Beans
+    food_class: FOOD
+    base_price_kes: 110.0
+    spoilage_frailty: 8.5
+  - name: Potatoes
+    food_class: FOOD
+    base_price_kes: 55.0
+    spoilage_frailty: 6.0
+  - name: Bananas
+    food_class: FOOD
+    base_price_kes: 60.0
+    spoilage_frailty: 11.0
+  - name: Avocados
+    food_class: FOOD
+    base_price_kes: 120.0
+    spoilage_frailty: 9.0
+  - name: Kale
+    food_class: FOOD
+    base_price_kes: 40.0
+    spoilage_frailty: 10.0
+  - name: Onions
+    food_class: FOOD
+    base_price_kes: 70.0
+    spoilage_frailty: 8.0
+  - name: Tomatoes
+    food_class: FOOD
+    base_price_kes: 90.0
+    spoilage_frailty: 12.0
+  - name: Mangoes
+    food_class: FOOD
+    base_price_kes: 85.0
+    spoilage_frailty: 10.5
