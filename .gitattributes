@@ -1,1 +1,3 @@
+*.csv filter=lfs diff=lfs merge=lfs -text
+*.tif filter=lfs diff=lfs merge=lfs -text
 post_harvest_data_engine/data/processed/food/*.joblib filter=lfs diff=lfs merge=lfs -text
