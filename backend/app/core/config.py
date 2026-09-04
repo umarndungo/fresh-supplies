@@ -28,6 +28,14 @@ class Settings(BaseSettings):
         "../post_harvest_data_engine/data/processed/food/market_prices.csv"
     )
 
+    OTP_EXPIRE_MINUTES: int = 5
+    OTP_RATE_LIMIT_PER_MINUTE: int = 3
+    OTP_RATE_LIMIT_WINDOW_MINUTES: int = 10
+    PHOTO_STORAGE_PATH: str = "./media/shipment_photos"
+    PHOTO_MAX_LONG_EDGE: int = 1600
+    PHOTO_JPEG_QUALITY: int = 80
+    RECONCILIATION_INTERVAL_MINUTES: int = 5
+
 
 @lru_cache
 def get_settings() -> Settings:
