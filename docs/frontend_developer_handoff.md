@@ -26,6 +26,15 @@ cooperative admins — desk/office users on real screens, not the farmer-in-a-fi
 persona (that's a separate mobile/WhatsApp channel being scoped elsewhere). Build for
 data density and clarity, not for one-glance simplicity.
 
+**Backend API has expanded** — in addition to the original `/auth`, `/shipments`,
+`/produce`, and `/ml` routes, the backend now exposes a full `/mobile/*` namespace
+for the field mobile app. These mobile endpoints are not relevant to the web frontend
+directly, but the backend's Pydantic schemas and response shapes have been updated
+(e.g. `UserOut` now includes `phone_number`, `account_type`, `cooperative_id`,
+`phone_verified`, `profile_completed` fields). If you consume `GET /auth/me` or any
+user-facing endpoint, check the updated schema at `/docs` — the response shape has
+new nullable fields.
+
 ---
 
 ## 2. Deliverables — what "done" looks like
@@ -33,10 +42,12 @@ data density and clarity, not for one-glance simplicity.
 In priority order (highest business value / lowest effort first):
 
 ### 2.1 Wire the ML endpoints into the shipment flow — **do this first**
-The backend already exposes `/ml/predict-spoilage` and `/ml/recommend-market`, but
-nothing in the frontend calls them yet. This is the single biggest gap between what
-the product is supposed to do and what a user can currently see. When a shipment is
-created or viewed:
+> **Backend status: endpoints built, test-covered. Frontend wiring still needed** —
+> the `/ml/predict-spoilage` and `/ml/recommend-market` endpoints are fully
+> implemented and tested on the backend. What's missing is the frontend integration
+> (calling them from the shipment detail view and displaying results).
+
+When a shipment is created or viewed:
 - Call `predict-spoilage`, display a **risk-tier badge** (Fresh / At-Risk / Critical)
   with color coding, inline on the shipment card and detail view.
 - Call `recommend-market`, show a **ranked market table** (market name, distance,
@@ -97,7 +108,7 @@ rather than working around it.
 | Route | Status |
 |---|---|
 | `/shipments` (GET/POST/PATCH/DELETE) | ✅ built |
-| `/produce` (GET/POST/PATCH/DELETE) | ❌ your build |
+| `/produce` (GET/POST/PATCH/DELETE) | ✅ built |
 
 ### ML endpoints (built on backend, **not yet wired into frontend**)
 | Route | Auth | Notes |
@@ -203,6 +214,12 @@ per screen; recharts for all trend visualizations (already a dependency) with a
 shaded-gradient line style; semantic risk-tier colors defined once in the theme, not
 re-picked per component.
 
+User schema update: GET /auth/me and auth responses now include nullable fields:
+phone_number, account_type, cooperative_id, phone_verified, profile_completed.
+The web auth flow is unchanged — these are additions for mobile users, not
+replacements. Existing web users will have null for phone_number and
+phone_verified=false.
+
 Users are logistics managers, market analysts, and farmer-cooperative admins on
 desktop/tablet — not a farmer-in-field mobile persona. Screens can be information-
 dense; that's appropriate for this audience.
@@ -229,7 +246,10 @@ mirroring and which parts are genuinely new, before writing code.
 
 - Exact request/response schema for both `/ml` endpoints (pull from `/docs`, don't
   infer from this document).
-- Whether `produce` records need a `cooperative_id`-style grouping for multi-user
-  cooperatives, which would affect the Farmer Cooperative dashboard's data scoping.
+- The `cooperative_id` grouping question is now resolved — both COOPERATIVE and
+  INDIVIDUAL account types are supported. Produce/shipments carry `owner_type` and
+  nullable `cooperative_id` columns. The Farmer Cooperative dashboard should filter
+  by `cooperative_id` for cooperative users and by `submitted_by_user_id` for
+  individual users.
 - Map tile provider choice (Leaflet + OpenStreetMap is free/simple; Mapbox GL has
   nicer styling but needs an API key/billing) — a product decision, not a dev default.
