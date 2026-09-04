@@ -62,6 +62,9 @@ make deliberately, not default into.
 │    ├─ backend (FastAPI/uvicorn)              │
 │    ├─ postgres (persistent volume)           │
 │    ├─ reconciliation worker (§ below)        │
+│    ├─ reconciliation worker (app/application/reconciliation_service.py —
+│    │   promotes staging→shipments, currently needs manual/cron trigger,
+│    │   not yet a long-lived worker process)
 │    └─ [staging stack, separate compose file] │
 │                                               │
 │  Block volume mount:                         │
@@ -131,9 +134,15 @@ SSR plus FastAPI plus Postgres plus the reconciliation worker on 12GB is tight.
 - The gateway calls your backend's USSD-specific endpoint over a webhook — this
   needs to be reachable from the public internet even in staging, so make sure
   staging is also behind Caddy/TLS on a real domain, not `localhost`-only.
-- Keep sandbox and production gateway credentials in clearly separate secrets (see
+  - Keep sandbox and production gateway credentials in clearly separate secrets (see
   §8) — a sandbox session hitting a production number, or vice versa, is an easy and
   embarrassing mistake to make once and should be structurally hard to make twice.
+
+> **OTP delivery dependency:** The mobile auth flow generates OTP codes and stores
+> them in the `otp_codes` table, but SMS delivery is not yet integrated. This needs
+> an Africa's Talking or Twilio integration in `app/application/otp_service.py`
+> before real users can log in via phone. The gateway setup should happen in
+> parallel with the mobile app build.
 
 ---
 
@@ -144,9 +153,9 @@ repos — this doc assumes monorepo given the existing project layout, adjust pa
 split):
 
 **Backend (`backend/`)**
-1. On PR: lint, run pytest suite (including the migration smoke test from the backend
-   handoff notes), spin up a throwaway Postgres service container for integration
-   tests.
+1. On PR: lint, run pytest suite (31 tests — including mobile auth, shipment sync,
+   driver manifest, device registration, and i18n tests), spin up a throwaway
+   Postgres service container for integration tests.
 2. On merge to `main`: build Docker image, push to a registry (GitHub Container
    Registry is free and simple), SSH/deploy to the Oracle VM (or trigger a `docker
    compose pull && up -d` via a small deploy script) — **run `alembic upgrade head`
@@ -256,11 +265,15 @@ teams' work meets before it's real. Make it earn that role:
   since the mobile app and USSD flow can't see a Swagger diff the way a person can.
 - **A lightweight end-to-end smoke test worth having early**: capture a shipment via
   the mobile app (or a script hitting `/mobile/shipments/sync` directly) against
-  staging, confirm it reaches `shipment_sync_staging`, gets reconciled into
-  `shipments`, and that `/mobile/shipments/{id}/recommendation` returns a sane
-  result — this single flow touches data engine artifacts, backend logic, and the
-  mobile contract all at once, so it's the highest-value one test to automate first
-  if only one gets built.
+  staging, confirm it reaches `shipment_sync_staging`, run the reconciliation
+  service to promote it into `shipments`, and confirm
+  `/mobile/shipments/{id}/recommendation` returns a sane result — this single flow
+  touches data engine artifacts, backend logic, and the mobile contract all at once,
+  so it's the highest-value one test to automate first if only one gets built.
+
+  Note: the reconciliation service is not yet wired to a periodic scheduler. For
+  the smoke test, call `run_reconciliation()` directly or trigger it via a
+  management endpoint.
 
 ---
 
@@ -317,6 +330,11 @@ raised as a change.
 When proposing a CI/CD change, state which existing workflow/environment convention
 you're extending, and flag explicitly if a proposed step would increase steady-state
 resource usage on the always-on VM.
+
+The mobile API namespace (/mobile/*) is fully implemented with 11 endpoints.
+The reconciliation service exists but needs a scheduler (APScheduler, cron, or
+a Celery/RQ worker). i18n is built (en/sw) in app/core/i18n.py. Photo storage
+is local disk, no resize pipeline yet.
 ```
 
 ---
@@ -338,6 +356,8 @@ resource usage on the always-on VM.
 8. Mobile CI builds + internal test track distribution (§5).
 9. USSD sandbox integration (§6) — start the Africa's Talking account/shortcode
    process early given its likely lead time, even if the flow itself isn't ready.
+10. i18n infrastructure (app/core/i18n.py) is built with en/sw translations — no
+    backend work needed for locale support, just Accept-Language header handling.
 
 ---
 
