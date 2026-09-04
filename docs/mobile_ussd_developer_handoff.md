@@ -8,6 +8,12 @@ system context to vibecode accurately.
 
 ## 1. Project context (read first)
 
+> **Backend status: all `/mobile/*` endpoints are implemented and tested.** The
+> backend developer has completed all endpoints specified in the Mobile API Contract
+> v0.2 — OTP auth, shipment sync, photo upload, recommendation, driver manifest,
+> stop confirmation, and device registration. The Flutter developer can build against
+> these endpoints now; they are live at `/api/v1/mobile/*`.
+
 Two channels, one backend contract. The **app** (Flutter, based on the design-system
 review already done for this project) serves drivers/logistics primarily and farmers
 who have smartphones; **USSD/SMS** exists because a meaningful share of the actual
@@ -29,6 +35,13 @@ building two different front doors onto the same sync/recommendation endpoints.
 ## 2. Deliverables — App (Flutter)
 
 ### 2.1 Auth + onboarding
+**Backend i18n is ready** — the backend now has `app/core/i18n.py` with `en` and `sw`
+translations for risk labels and notification copy. The recommendation endpoint
+accepts `Accept-Language` query parameter (default `en`). Send `Accept-Language: sw`
+from the Flutter app to get Swahili risk labels and notification text from the API.
+Don't maintain a separate client-side copy of these strings — render what the API
+returns.
+
 - Phone + OTP login (`/mobile/auth/otp/request`, `/otp/verify`) — reuse the
   passcode-keypad pattern from the design-system reference (custom numeric grid, not
   the OS keyboard) for a consistent branded PIN-entry feel.
@@ -40,6 +53,12 @@ building two different front doors onto the same sync/recommendation endpoints.
   plain shared preferences.
 
 ### 2.2 Offline shipment capture — the core surface
+> The sync endpoint (`POST /mobile/shipments/sync`) returns `risk_tier` inline per
+> item — computed against the staged record synchronously. The reconciliation job
+> (`app/application/reconciliation_service.py`) promotes staging rows to the
+> canonical `shipments` table periodically. The Flutter app should handle the mixed
+> partial-failure response where some items succeed and others error.
+
 - Local queue (recommend `sqflite` or `Hive` for the offline store) — every capture
   writes locally first, syncs opportunistically.
 - Generate a `client_id` (UUID v4) **on-device at capture time**, not at sync time —
@@ -59,6 +78,11 @@ building two different front doors onto the same sync/recommendation endpoints.
   reconciliation to see a result.
 
 ### 2.3 Simplified recommendation view
+> The recommendation endpoint is at `GET /mobile/shipments/{id}/recommendation`
+> and accepts query params: `crop`, `quantityKg`, `lat`, `lon`, `Accept-Language`.
+> It returns `risk_tier`, `risk_label` (translated), `recommended_market`, and
+> `alternate_markets` (top 2).
+
 `GET /mobile/shipments/{id}/recommendation` → one risk tier badge, one plain-language
 action sentence, one primary recommended market, two alternates behind a "see other
 options" tap. This is the farmer-facing screen — keep it to the one-number/one-
@@ -75,6 +99,12 @@ sentence/one-action density discussed earlier, not the driver/analyst density.
   point — don't re-fragment them into per-farmer stops in the UI.
 
 ### 2.5 Notifications
+> Device registration is implemented at `POST /mobile/devices/register` — send
+> `{"deviceToken": "...", "platform": "android"|"ios"}` after login. Push
+> notification triggers (CRITICAL tier change, manifest update) are not yet
+> implemented server-side — the device registration and i18n infrastructure is
+> ready, but the trigger logic is a follow-up item.
+
 `POST /mobile/devices/register` on login; handle at minimum: shipment crosses into
 `CRITICAL` risk tier, and manifest changes after a driver has already synced for the
 day.
@@ -210,19 +240,14 @@ confirmed rather than guessing its contract.
 
 ## 6. Suggested build order
 
-1. Auth + onboarding, including account-type selection (§2.1) — nothing else works
-   without this.
-2. Offline capture + sync core loop (§2.2) — the product's actual value; get this
-   solid (including partial-failure handling and background sync triggers) before
-   moving on.
-3. Recommendation view (§2.3) — thin layer once §2 exists.
-4. Driver manifest + confirmation flow (§2.4) — can start in parallel with 2–3 once
-   the design-system components are stubbed out.
-5. Notifications (§2.5).
-6. USSD flow (§3) — can start once the backend's lower-trust auth path (§3.2) is
-   confirmed; doesn't block on the app being fully finished, since it's a separate
-   channel against the same core endpoints.
-7. Localization (§2.6) — thread through as you go, don't bolt on at the end.
+The backend endpoints are all implemented. The Flutter developer can proceed with:
+1. Auth + onboarding (§2.1) — backend ready
+2. Offline capture + sync (§2.2) — backend ready
+3. Recommendation view (§2.3) — backend ready
+4. Driver manifest + confirmation (§2.4) — backend ready
+5. Notifications (§2.5) — device registration ready, trigger logic pending
+6. USSD flow (§3) — backend auth path still needs spec (lower-trust model)
+7. Localization (§2.6) — backend i18n ready, Flutter localization needed
 
 ---
 
