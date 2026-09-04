@@ -1,4 +1,4 @@
-# FreshRoute AI — Web Frontend Developer Handoff
+# Fresh Supplies — Web Frontend Developer Handoff
 
 Purpose of this doc: give the frontend developer everything needed to build the
 remaining web app — what to build, in what order, against what backend contract,
@@ -9,7 +9,7 @@ etc.) and get accurate, non-hallucinated output on the first pass.
 
 ## 1. Project context (read first)
 
-FreshRoute AI predicts post-harvest spoilage risk for East African perishable-crop
+Fresh Supplies predicts post-harvest spoilage risk for East African perishable-crop
 shipments and recommends which market to sell to for the best revenue retained
 (`qty × price × (1 − spoilage%)`). Three subsystems exist:
 
@@ -171,7 +171,7 @@ shapes that don't exist, and rebuilding patterns that already exist elsewhere in
 codebase.
 
 ```
-PROJECT: FreshRoute AI — web frontend (Next.js 16, App Router, React 19, TypeScript,
+PROJECT: Fresh Supplies — web frontend (Next.js 16, App Router, React 19, TypeScript,
 Tailwind CSS v4, shadcn/ui, TanStack Query, axios, zod + react-hook-form).
 
 This frontend already has: JWT auth (login/register, refresh-cookie flow, protected

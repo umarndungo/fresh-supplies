@@ -32,7 +32,7 @@ const DEMO_USER: AuthUser = {
   email: "dev@freshroute.ai",
   fullName: "Development User",
   role: "ADMINISTRATOR",
-  organizationName: "FreshRoute AI Demo",
+  organizationName: "Fresh Supplies Demo",
   avatarUrl: null,
   createdAt: new Date().toISOString(),
 };

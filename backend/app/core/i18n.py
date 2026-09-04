@@ -5,7 +5,7 @@ _TRANSLATIONS = {
         "risk_critical": "Critical — sell immediately",
         "notify_critical_shipment": "Your {crop} shipment has entered critical risk. Consider selling immediately.",
         "notify_manifest_changed": "Your manifest has been updated. Please re-sync for the latest pickup schedule.",
-        "otp_message": "Your FreshRoute verification code is: {code}. It expires in {minutes} minutes.",
+        "otp_message": "Your Fresh Supplies verification code is: {code}. It expires in {minutes} minutes.",
     },
     "sw": {
         "risk_fresh": "Mpya — uza unapotaka",
@@ -13,7 +13,7 @@ _TRANSLATIONS = {
         "risk_critical": "Hatari — uza mara moja",
         "notify_critical_shipment": "Shipment yako ya {crop imeingia katika hatari. Fikiria kuza mara moja.",
         "notify_manifest_changed": "Orodha yako ya pickup imesasishwa. Tafadhali sync upya kwa ratiba ya sasa.",
-        "otp_message": "Kodi yako ya uthibitisho ya FreshRoute ni: {code}. Inaisha baada ya dakika {minutes}.",
+        "otp_message": "Kodi yako ya uthibitisho ya Fresh Supplies ni: {code}. Inaisha baada ya dakika {minutes}.",
     },
 }
 

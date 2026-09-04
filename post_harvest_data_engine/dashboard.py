@@ -13,12 +13,12 @@ from src.faostat_downloader import get_faostat_baseline_for_country
 from src.grouping import load_grouped_dataset, PROCESSED_DIR, _group_dir
 
 st.set_page_config(
-    page_title="FreshRoute AI - Post-Harvest & Climate Engine",
+    page_title="Fresh Supplies - Post-Harvest & Climate Engine",
     page_icon="🌾",
     layout="wide"
 )
 
-st.title("🌾 FreshRoute AI: Post-Harvest Intelligence & Climate Engine")
+st.title("🌾 Fresh Supplies: Post-Harvest Intelligence & Climate Engine")
 st.markdown("Comprehensive dashboard parsing local FAOSTAT CSV source files, telemetry, and location analytics.")
 
 FOOD_CLASS_GROUPS = ["FOOD", "FOOD_GRADE_OIL", "NON_EDIBLE"]

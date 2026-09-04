@@ -1,5 +1,5 @@
 """
-FreshRoute AI — ML Explainer Dashboard.
+Fresh Supplies — ML Explainer Dashboard.
 
 A simple educational Streamlit app that walks through, end to end:
   1. Where our data comes from
@@ -25,7 +25,7 @@ from src.feature_engineering import engineer_pipeline_features
 from config import settings  # noqa: F401  (imported for visibility)
 
 st.set_page_config(
-    page_title="FreshRoute AI — ML Explainer",
+    page_title="Fresh Supplies — ML Explainer",
     page_icon="🌾",
     layout="wide",
 )
@@ -59,7 +59,7 @@ def load_training_artifacts():
 # ---------------------------------------------------------------------------
 # Navigation
 # ---------------------------------------------------------------------------
-st.markdown("## 🌾 FreshRoute AI — How Our Data & Model Work")
+st.markdown("## 🌾 Fresh Supplies — How Our Data & Model Work")
 st.caption("A simple visual walkthrough of the spoilage-prediction pipeline — from raw data to ML results.")
 
 tab = st.sidebar.radio(
@@ -74,7 +74,7 @@ tab = st.sidebar.radio(
 )
 
 st.sidebar.markdown("---")
-st.sidebar.markdown("**FreshRoute AI** · Post-harvest spoilage prediction")
+st.sidebar.markdown("**Fresh Supplies** · Post-harvest spoilage prediction")
 
 # ---------------------------------------------------------------------------
 # 1. DATA SOURCES

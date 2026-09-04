@@ -23,7 +23,7 @@ export function Logo({ variant = "default", className, showWordmark = true }: Lo
       </svg>
       {showWordmark ? (
         <span className={cn("font-display text-lg font-semibold tracking-tight", isLight ? "text-white" : "text-foreground")}>
-          FreshRoute<span className={isLight ? "text-white/70" : "text-primary"}> AI</span>
+          Fresh Supplies
         </span>
       ) : null}
     </div>

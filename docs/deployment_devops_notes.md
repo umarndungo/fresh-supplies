@@ -1,4 +1,4 @@
-# FreshRoute AI — Deployment Strategy & DevOps/Integration Notes
+# Fresh Supplies — Deployment Strategy & DevOps/Integration Notes
 
 Scope: how the four subsystems (data engine, backend, web frontend, mobile+USSD) get
 built, deployed, and kept working together, given the Oracle Cloud Free Tier hosting
@@ -298,7 +298,7 @@ teams' work meets before it's real. Make it earn that role:
 ## 12. AI context packet (for vibecoding DevOps/CI work)
 
 ```
-PROJECT: FreshRoute AI infrastructure. Target hosting: single Oracle Cloud Always
+PROJECT: Fresh Supplies infrastructure. Target hosting: single Oracle Cloud Always
 Free Ampere A1 VM — CURRENTLY 2 OCPU / 12GB RAM (Oracle silently halved this from
 4 OCPU/24GB in June 2026; always size new work for 2 OCPU/12GB and treat that number
 as provisional, verify against current Oracle docs before assuming more capacity is
