@@ -8,11 +8,16 @@ from app.domain.entities import CommodityClass, ProduceStatus, ShipmentStatus, U
 
 class UserOut(BaseModel):
     id: UUID
-    email: EmailStr
+    email: EmailStr | None = None
     full_name: str = Field(serialization_alias="fullName")
     role: UserRole
     organization_name: str | None = Field(serialization_alias="organizationName")
     avatar_url: str | None = Field(serialization_alias="avatarUrl")
+    phone_number: str | None = Field(serialization_alias="phoneNumber")
+    account_type: str | None = Field(serialization_alias="accountType")
+    cooperative_id: UUID | None = Field(serialization_alias="cooperativeId")
+    phone_verified: bool = Field(serialization_alias="phoneVerified")
+    profile_completed: bool = Field(serialization_alias="profileCompleted")
     created_at: datetime = Field(serialization_alias="createdAt")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
