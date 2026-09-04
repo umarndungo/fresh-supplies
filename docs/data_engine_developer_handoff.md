@@ -28,6 +28,16 @@ synthetic market prices, the thin FAOSTAT baseline, and no model versioning.
 ## 2. Deliverables — what's next
 
 ### 2.1 Real-data ingestion path from the mobile capture flow — the big opportunity
+
+> **Backend status: reconciliation is live.** The `shipment_sync_staging` →
+> `shipments` reconciliation service is implemented at
+> `app/application/reconciliation_service.py`. It promotes PENDING staging rows
+> into the canonical `shipments` table. The staging table stores crop, quantity,
+> GPS location, timestamp, owner_type, cooperative_id, and submitted_by_user_id.
+> Real field-captured data will start flowing once the mobile app is deployed and
+> farmers begin capturing shipments. The data engine's ingestion script can now
+> target the `shipments` table for real data.
+
 Once the backend's `shipment_sync_staging` → `shipments` reconciliation is live (see
 the backend handoff), FreshRoute will start accumulating **real, field-captured
 shipment data** for the first time — crop, quantity, GPS location, timestamp, and
@@ -46,6 +56,12 @@ field gets added to the driver confirmation flow. This is worth prioritizing hig
   of only against its own synthetic target — which is the single most important
   thing that would upgrade this from "well-engineered synthetic model" to "validated
   predictive model."
+- The `shipments` table now carries `owner_type` (COOPERATIVE/INDIVIDUAL),
+  `cooperative_id` (nullable), and `submitted_by_user_id` columns — the ingestion
+  script should be aware of these for any cooperative-level analysis.
+- Photos are stored on local disk at `PHOTO_STORAGE_PATH` (default
+  `./media/shipment_photos`) with references in `photo_ref` — the ingestion script
+  can use these for visual quality assessment if needed.
 
 ### 2.2 Model artifact versioning
 Currently a `.joblib` file gets overwritten on retrain and picked up via `lru_cache`
@@ -157,11 +173,10 @@ is itself worth flagging.
 
 ## 6. Open questions to raise, not guess on
 
-- Will the driver confirmation flow ever capture an actual "was this shipment
-  spoiled on arrival" outcome? This determines whether §2.1's real-data path is
-  "richer synthetic-realism validation" (useful now) or "actual ground-truth model
-  validation" (transformative later) — worth raising with the backend/product owner
-  rather than assuming either way.
+- The driver confirmation flow now captures `confirmed_at` and `location` (lat/lon)
+  via `POST /mobile/driver/stops/{id}/confirm`. It does NOT yet capture a
+  "was this shipment actually spoiled on arrival" outcome — that's still a product
+  decision. If added, it would enable ground-truth model validation.
 - Where should versioned model artifacts physically live — same local-disk approach
   the backend is using for photos (Oracle Free Tier), or elsewhere? Worth checking
   before building §2.2 so the two efforts don't diverge on storage approach

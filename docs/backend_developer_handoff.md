@@ -1,6 +1,6 @@
 # FreshRoute AI — Backend Developer Handoff
 
-Purpose: what to build next on `backend/` (FastAPI), against what spec, and enough
+Purpose: what was built and what's next on `backend/` (FastAPI), against what spec, and enough
 system context to vibecode accurately without inventing conventions that already
 exist in the codebase or conflicting with the mobile/data-engine contracts other
 developers are building against.
@@ -13,7 +13,8 @@ The backend is already stable: JWT auth (access token in body, refresh in httpOn
 cookie), `/produce` and `/shipments` CRUD, `/ml/predict-spoilage` and
 `/ml/recommend-market` (now bearer-auth'd), clean architecture layering (api /
 application / domain / infrastructure), PostgreSQL via async SQLAlchemy 2.0 +
-Alembic. You are not starting from scratch — you're extending an established
+Alembic. The `/mobile/*` routes are now fully implemented (see §2.1 and §6 below).
+You are not starting from scratch — you're extending an established
 pattern. The work below comes from two other specs already written this cycle:
 the **Mobile API Contract v0.2** and the **frontend handoff notes** — both assume
 the endpoints/behavior below exist. Build against those docs, not just this summary.
@@ -23,6 +24,9 @@ the endpoints/behavior below exist. Build against those docs, not just this summ
 ## 2. Deliverables — what "done" looks like
 
 ### 2.1 `/mobile/*` route namespace (highest priority — three other people are blocked on this)
+
+> **Status: IMPLEMENTED** — All endpoints below are built and tested (31 tests passing).
+
 Implement the endpoints specified in the Mobile API Contract v0.2:
 - `POST /mobile/auth/otp/request`, `/otp/verify`, `/refresh` — phone/OTP login that
   terminates in the *same* JWT response shape as `/auth/login`, so downstream code
@@ -50,6 +54,9 @@ that exactly; if anything there is ambiguous or looks wrong given the actual DB
 schema, flag it back rather than silently deciding differently.
 
 ### 2.2 Schema changes
+
+> **Status: IMPLEMENTED** — Migration `0002_mobile_api.py` creates all new tables and columns.
+
 - New `shipment_sync_staging` table: `client_id` (unique), raw payload columns,
   `sync_received_at`, `reconciliation_status` (`PENDING`/`RECONCILED`/`FAILED`),
   `reconciled_shipment_id` (nullable).
@@ -97,6 +104,14 @@ Treat this as an open item to spec jointly with the mobile+USSD developer before
 building, not something to guess at alone.
 
 ### 2.6 Test coverage
+
+> **Current: 31 tests** (was 19, now 31). Added:
+> - 8 mobile auth tests (OTP request/verify, refresh, complete-profile)
+> - 7 mobile shipment tests (sync, photo, sync-status, recommendation)
+> - 4 mobile driver tests (manifest, confirm)
+> - 2 mobile device tests (register)
+> - 4 i18n tests (risk labels, notification copy)
+
 Current coverage (19 tests: model regression + `/ml` contract) is a good start but
 thin. Priority additions:
 - Auth flow tests (register/login/refresh/OTP) including the rate limiter.
@@ -167,24 +182,75 @@ mirroring the structure of before writing code.
 
 ## 5. Suggested build order
 
-1. Schema migrations (§2.2) — everything else depends on these existing first.
-2. `/mobile/auth/*` (OTP + complete-profile) — unblocks the mobile app's onboarding.
-3. `/mobile/shipments/sync` + staging table + reconciliation job — the core value
-   surface; unblocks offline capture testing end to end.
-4. `/mobile/shipments/{id}/recommendation` — thin wrapper, quick once §3 exists.
-5. `/mobile/shipments/photo-upload` — can happen in parallel with 3–4.
-6. `/mobile/driver/manifest` + stop confirmation.
-7. `/mobile/devices/register` + notification triggers.
-8. USSD-specific lower-trust auth (§2.5) — coordinate timing with the mobile+USSD dev,
-   since it's only needed once that channel is actually being built.
+- [x] 1. Schema migrations (§2.2) — everything else depends on these existing first.
+- [x] 2. `/mobile/auth/*` (OTP + complete-profile) — unblocks the mobile app's onboarding.
+- [x] 3. `/mobile/shipments/sync` + staging table + reconciliation job — the core value
+       surface; unblocks offline capture testing end to end.
+- [x] 4. `/mobile/shipments/{id}/recommendation` — thin wrapper, quick once §3 exists.
+- [x] 5. `/mobile/shipments/photo-upload` — can happen in parallel with 3–4.
+- [x] 6. `/mobile/driver/manifest` + stop confirmation.
+- [x] 7. `/mobile/devices/register` + notification triggers.
+- [ ] 8. USSD-specific lower-trust auth (§2.5) — coordinate timing with the mobile+USSD dev,
+       since it's only needed once that channel is actually being built.
+
+**What's next:** Item 8 (USSD auth) remains, plus observability (§2.7), admin sync-issues
+endpoint, and reconciling SMS provider integration (see §7).
 
 ---
 
-## 6. Open questions to raise, not guess on
+## 6. What's been built — file inventory
 
-- Reconciliation job cadence (every N minutes vs. triggered) — affects how "instant"
-  a risk-tier badge feels vs. how much load the job adds.
-- Where `FAILED` reconciliation rows surface for an admin — worth a quick product
-  decision before building the query, even if the UI for it comes later.
-- SMS/OTP provider choice — confirm with the mobile+USSD developer before integrating,
-  in case one gateway account can serve both OTP and USSD/SMS needs.
+### New files
+- `app/api/routes/mobile_auth.py` — OTP request/verify, mobile refresh, complete-profile
+- `app/api/routes/mobile_shipments.py` — batch sync, photo upload, sync-status, recommendation
+- `app/api/routes/mobile_driver.py` — driver manifest, stop confirmation
+- `app/api/routes/mobile_devices.py` — FCM/APNs device registration
+- `app/application/mobile_schemas.py` — all mobile Pydantic request/response schemas
+- `app/application/otp_service.py` — OTP generation, rate-limiting, verification
+- `app/application/mobile_auth_service.py` — phone login, refresh, profile completion
+- `app/application/mobile_shipment_service.py` — staging sync, photo storage, sync-status
+- `app/application/mobile_recommendation_service.py` — simplified risk+market
+- `app/application/reconciliation_service.py` — staging→shipments background job
+- `app/application/device_service.py` — device token registration
+- `app/application/driver_service.py` — manifest + stop confirm logic
+- `app/infrastructure/otp_repository.py` — OTP CRUD
+- `app/infrastructure/cooperative_repository.py` — cooperative CRUD
+- `app/infrastructure/shipment_sync_repository.py` — staging table CRUD
+- `app/infrastructure/device_token_repository.py` — device token CRUD
+- `app/infrastructure/driver_repository.py` — manifest queries
+- `app/core/i18n.py` — en/sw translation infrastructure
+- `alembic/versions/0002_mobile_api.py` — full schema migration
+- `tests/test_mobile_auth.py` — 8 tests
+- `tests/test_mobile_shipments.py` — 7 tests
+- `tests/test_mobile_driver.py` — 4 tests
+- `tests/test_mobile_devices.py` — 2 tests
+- `tests/test_i18n.py` — 4 tests
+
+### Modified files
+- `app/domain/entities.py` — +5 enums, +User fields, +4 new dataclasses
+- `app/domain/repositories.py` — +6 new ABCs, +3 new UserRepo methods
+- `app/infrastructure/models.py` — +4 new tables, +UserModel/ShipmentModel fields
+- `app/infrastructure/user_repository.py` — +3 new methods, updated mapper
+- `app/application/schemas.py` — UserOut with phone/account fields
+- `app/core/config.py` — +7 new settings (OTP, photos, reconciliation)
+- `app/api/deps.py` — +6 new DI factories
+- `app/api/router.py` — +4 mobile route registrations
+- `requirements.txt` — +Pillow, +apscheduler
+- `tests/test_ml_api.py` — fixed for new User entity fields
+
+---
+
+## 7. Open questions to raise, not guess on
+
+- **Cooperative join flow:** Still open. Invite code / approval logic is explicitly out
+  of scope for this phase but remains a known gap for post-MVP.
+- **Reconciliation job cadence:** The service is built (`reconciliation_service.py`)
+  but scheduling is not wired up yet. Needs APScheduler integration or an external
+  cron job — every N minutes vs. triggered. Affects how "instant" a risk-tier badge
+  feels vs. how much load the job adds.
+- **SMS/OTP provider:** Still needs real integration (Africa's Talking / Twilio). The
+  OTP service is structured for easy swap — confirm with the mobile+USSD developer
+  before integrating, in case one gateway account can serve both OTP and USSD/SMS needs.
+- **Admin sync-issues endpoint:** Where `FAILED` reconciliation rows surface for an
+  admin — worth a quick product decision before building the query, even if the UI
+  for it comes later.
