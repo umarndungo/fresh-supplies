@@ -9,7 +9,7 @@ export default function GlobalError({ error, reset }: { error: Error & { digest?
         <div className="flex min-h-screen flex-col items-center justify-center gap-6 bg-background px-6 text-center">
           <div className="space-y-2">
             <p className="font-display text-5xl font-semibold text-destructive">500</p>
-            <h1 className="text-xl font-semibold text-foreground">FreshRoute AI hit a critical error</h1>
+            <h1 className="text-xl font-semibold text-foreground">Fresh Supplies hit a critical error</h1>
             <p className="max-w-sm text-sm text-muted-foreground">
               The application failed to render. Reloading usually resolves this.
             </p>

@@ -1,4 +1,4 @@
-# FreshRoute AI — Backend Developer Handoff
+# Fresh Supplies — Backend Developer Handoff
 
 Purpose: what was built and what's next on `backend/` (FastAPI), against what spec, and enough
 system context to vibecode accurately without inventing conventions that already
@@ -142,7 +142,7 @@ since those are the two places a silent failure would be hardest to notice other
 ## 4. AI context packet (for vibecoding)
 
 ```
-PROJECT: FreshRoute AI backend — FastAPI, clean architecture (app/api, app/application,
+PROJECT: Fresh Supplies backend — FastAPI, clean architecture (app/api, app/application,
 app/domain, app/infrastructure, app/core), PostgreSQL via SQLAlchemy 2.0 async +
 asyncpg, Alembic migrations, JWT auth (access token in response body, refresh token in
 httpOnly cookie for web / response body for mobile), password hashing via passlib
@@ -150,7 +150,7 @@ pbkdf2_sha256 (not bcrypt — a prior bcrypt 5.x/passlib incompatibility caused 
 do not reintroduce bcrypt).
 
 DO NOT invent schema or endpoint shapes. The mobile endpoints being built are specified
-exactly in "FreshRoute AI — Mobile API Contract v0.2" — implement against that document's
+exactly in "Fresh Supplies — Mobile API Contract v0.2" — implement against that document's
 JSON shapes verbatim. If a shape in that doc looks inconsistent with the existing DB
 schema, say so explicitly rather than silently resolving the conflict.
 
