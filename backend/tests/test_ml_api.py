@@ -35,6 +35,11 @@ def _dummy_user():
         organization_name="Test Coop",
         avatar_url=None,
         created_at=datetime.now(timezone.utc),
+        phone_number=None,
+        account_type=None,
+        cooperative_id=None,
+        phone_verified=False,
+        profile_completed=True,
     )
 
 
