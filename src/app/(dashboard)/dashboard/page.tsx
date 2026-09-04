@@ -16,7 +16,7 @@ export default function DashboardOverviewPage() {
     <div className="space-y-6">
       <PageHeader
         title={`Welcome back, ${user.fullName.split(" ")[0]}`}
-        description="Here's a snapshot of your FreshRoute AI account."
+        description="Here's a snapshot of your Fresh Supplies account."
       />
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Card>

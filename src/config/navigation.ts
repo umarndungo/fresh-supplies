@@ -2,7 +2,7 @@ import { LayoutDashboard, Truck, Warehouse, LineChart, Route, FileBarChart, User
 import type { NavSection } from "@/types/nav.types";
 
 /**
- * Full intended information architecture for FreshRoute AI. Shipments is
+ * Full intended information architecture for Fresh Supplies. Shipments is
  * implemented; the remaining routes are scaffolded so the shell is
  * realistic, and resolve to the branded 404 page until built.
  */
