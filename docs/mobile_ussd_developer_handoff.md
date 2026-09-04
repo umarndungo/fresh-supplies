@@ -1,4 +1,4 @@
-# FreshRoute AI — Mobile + USSD Developer Handoff
+# Fresh Supplies — Mobile + USSD Developer Handoff
 
 Purpose: what to build for the field-facing farmer/driver channels — the app and the
 USSD/SMS fallback — against the Mobile API Contract v0.2, with enough design and
@@ -190,8 +190,8 @@ indicators, passcode keypad), applied selectively:
 ## 5. AI context packet (for vibecoding)
 
 ```
-PROJECT: FreshRoute AI mobile app — Flutter, targeting the farmer/driver field
-persona. Backend contract: "FreshRoute AI — Mobile API Contract v0.2" — implement
+PROJECT: Fresh Supplies mobile app — Flutter, targeting the farmer/driver field
+persona. Backend contract: "Fresh Supplies — Mobile API Contract v0.2" — implement
 against its exact JSON request/response shapes, do not invent field names.
 
 Core architectural requirement: OFFLINE-FIRST. Every shipment capture writes to a

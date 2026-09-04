@@ -1,4 +1,4 @@
-# FreshRoute AI — Mobile API Contract (Draft v0.2)
+# Fresh Supplies — Mobile API Contract (Draft v0.2)
 
 Scope: endpoints needed for a field-capture / logistics mobile app on top of the
 existing FastAPI backend. This extends (does not replace) the current `/auth`,

@@ -1,4 +1,4 @@
-# FreshRoute AI — Data Engine Developer Handoff
+# Fresh Supplies — Data Engine Developer Handoff
 
 Purpose: what to build/improve next on `post_harvest_data_engine/`, why it matters
 given where the rest of the system now is, and enough context to vibecode accurately
@@ -39,7 +39,7 @@ synthetic market prices, the thin FAOSTAT baseline, and no model versioning.
 > target the `shipments` table for real data.
 
 Once the backend's `shipment_sync_staging` → `shipments` reconciliation is live (see
-the backend handoff), FreshRoute will start accumulating **real, field-captured
+the backend handoff), Fresh Supplies will start accumulating **real, field-captured
 shipment data** for the first time — crop, quantity, GPS location, timestamp, and
 (eventually) actual outcome if a "was this shipment actually spoiled on arrival"
 field gets added to the driver confirmation flow. This is worth prioritizing highly:
@@ -116,7 +116,7 @@ retrain succeed, and what were the headline metrics" without re-reading stdout.
 ## 4. AI context packet (for vibecoding)
 
 ```
-PROJECT: FreshRoute AI data engine — post_harvest_data_engine/, Python ETL + ML
+PROJECT: Fresh Supplies data engine — post_harvest_data_engine/, Python ETL + ML
 training. Pipeline: main.py drives ingestion (src/ingestion.py, FAOSTAT + synthetic
 telemetry) -> grouping (src/grouping.py, splits by food_class) -> market pricing
 (src/market_pricing.py) -> model training (src/train_food_model.py,
