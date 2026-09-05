@@ -3,6 +3,7 @@ import { MobileNav } from "@/components/layout/mobile-nav";
 import { NotificationMenu } from "@/components/layout/notification-menu";
 import { ProfileDropdown } from "@/components/layout/profile-dropdown";
 import { ThemeToggle } from "@/components/layout/theme-toggle";
+import { LanguageSwitcher } from "@/components/layout/language-switcher";
 
 export function Topbar() {
   return (
@@ -10,6 +11,7 @@ export function Topbar() {
       <MobileNav />
       <Breadcrumbs />
       <div className="ml-auto flex items-center gap-1">
+        <LanguageSwitcher />
         <ThemeToggle />
         <NotificationMenu />
         <ProfileDropdown />

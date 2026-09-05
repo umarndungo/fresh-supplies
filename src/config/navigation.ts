@@ -1,4 +1,4 @@
-import { LayoutDashboard, Truck, Warehouse, LineChart, Route, FileBarChart, Users } from "lucide-react";
+import { LayoutDashboard, Truck, Warehouse, BarChart2, Route, FileBarChart, Users, LineChart, MapPin } from "lucide-react";
 import type { NavSection } from "@/types/nav.types";
 
 /**
@@ -22,6 +22,13 @@ export const NAV_SECTIONS: NavSection[] = [
         href: "/dashboard/produce",
         icon: Warehouse,
         roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER", "FARMER_COOPERATIVE"],
+      },
+      {
+        title: "Analytics",
+        href: "/dashboard/analytics",
+        icon: BarChart2,
+        roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER", "MARKET_ANALYST"],
+        description: "Spoilage trends, revenue, risk distribution",
       },
       {
         title: "Market Insights",
