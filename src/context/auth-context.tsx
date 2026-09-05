@@ -119,9 +119,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     if (env.NEXT_PUBLIC_DEV_AUTH_BYPASS) {
-      setUser(DEMO_USER);
-      setStatus("authenticated");
-      setSessionFlag(true);
+      setUser(null);
+      setStatus("unauthenticated");
+      setSessionFlag(false);
       return;
     }
 
