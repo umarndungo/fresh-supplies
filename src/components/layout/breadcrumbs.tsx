@@ -36,7 +36,7 @@ export function Breadcrumbs() {
             {isLast ? (
               <span className="font-medium text-foreground">{toLabel(segment)}</span>
             ) : (
-              <Link href={href} className="hover:text-foreground">
+              <Link href={href as any} className="hover:text-foreground">
                 {toLabel(segment)}
               </Link>
             )}
