@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { ArrowLeft, Truck, MapPin, Calendar, Package, Thermometer, Gauge, Scale, AlertCircle, CheckCircle, XCircle, Loader2, Trash2 } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ArrowLeft, Truck, MapPin, Calendar, Package, Thermometer, Gauge, Scale, AlertCircle, CheckCircle, XCircle, Loader2, Trash2, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -16,6 +16,8 @@ import { usePredictSpoilage, useRecommendMarket } from "@/hooks/use-ml";
 import { useShipment, useDeleteShipment } from "@/hooks/use-shipments";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
+import { ShipmentMap } from "@/components/map/shipment-map";
+import { KENYAN_MARKETS } from "@/components/map/kenyan-markets";
 import type { Shipment } from "@/types/shipment.types";
 import type { MarketRecommendationOut } from "@/types/ml.types";
 
@@ -37,6 +39,19 @@ function buildMarketRequest(shipment: Shipment) {
     ...buildSpoilageRequest(shipment),
     top_n: 10,
   };
+}
+
+function getMarketCoordinates(marketName: string): { lat: number; lng: number } | null {
+  const market = KENYAN_MARKETS.find((m) => m.name.toLowerCase() === marketName.toLowerCase());
+  return market ? { lat: market.latitude, lng: market.longitude } : null;
+}
+
+function getDestinationCoordinates(shipment: Shipment): { lat: number; lng: number; name: string } | null {
+  const destMarket = KENYAN_MARKETS.find((m) => m.name.toLowerCase() === shipment.destination.toLowerCase());
+  if (destMarket) {
+    return { lat: destMarket.latitude, lng: destMarket.longitude, name: destMarket.name };
+  }
+  return { lat: -1.2921, lng: 36.8219, name: shipment.destination };
 }
 
 const STATUS_ICONS: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -348,6 +363,24 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           </CardContent>
         </Card>
       </div>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Map className="size-5" />
+            Route & Market Map
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <ShipmentMap
+            origin={shipment.latitude && shipment.longitude ? { lat: shipment.latitude, lng: shipment.longitude, name: shipment.origin } : undefined}
+            destination={getDestinationCoordinates(shipment) ?? undefined}
+            recommendations={marketRecommendations}
+            showAllMarkets={true}
+            height="500px"
+          />
+        </CardContent>
+      </Card>
 
       <Separator />
 

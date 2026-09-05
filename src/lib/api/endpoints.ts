@@ -10,6 +10,10 @@ export const API_ENDPOINTS = {
     base: "/shipments",
     byId: (id: string) => `/shipments/${id}`,
   },
+  produce: {
+    base: "/produce",
+    byId: (id: string) => `/produce/${id}`,
+  },
   ml: {
     predictSpoilage: "/ml/predict-spoilage",
     recommendMarket: "/ml/recommend-market",
