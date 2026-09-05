@@ -19,9 +19,9 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         title: "Produce Inventory",
-        href: "/dashboard/inventory",
+        href: "/dashboard/produce",
         icon: Warehouse,
-        roles: ["ADMINISTRATOR", "FARMER_COOPERATIVE"],
+        roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER", "FARMER_COOPERATIVE"],
       },
       {
         title: "Market Insights",
