@@ -3,7 +3,7 @@ import { z } from "zod";
 const envSchema = z.object({
   NEXT_PUBLIC_APP_NAME: z.string().min(1).default("Fresh Supplies"),
   NEXT_PUBLIC_APP_URL: z.string().url().default("http://localhost:3000"),
-  NEXT_PUBLIC_API_URL: z.string().url(),
+  NEXT_PUBLIC_API_URL: z.string().url().default("http://localhost:8000/api/v1"),
   NEXT_PUBLIC_DEV_AUTH_BYPASS: z
     .union([z.literal("true"), z.literal("false"), z.boolean()])
     .default("false")

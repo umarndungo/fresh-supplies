@@ -27,7 +27,6 @@ export function CreateShipmentDialog() {
       temperatureC: undefined,
       transitDurationHr: undefined,
       pressurePsi: undefined,
-      baselineLossPct: undefined,
       quantityKg: undefined,
     },
   });
@@ -180,19 +179,6 @@ export function CreateShipmentDialog() {
                       <FormLabel>Pressure (PSI)</FormLabel>
                       <FormControl>
                         <Input type="number" step="any" placeholder="30" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="baselineLossPct"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Baseline loss (%)</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="any" placeholder="10" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
