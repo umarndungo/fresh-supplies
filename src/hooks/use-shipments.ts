@@ -5,6 +5,7 @@ import { toast } from "sonner";
 import {
   createShipmentRequest,
   deleteShipmentRequest,
+  getShipmentRequest,
   listShipmentsRequest,
   updateShipmentRequest,
 } from "@/lib/api/shipment.api";
@@ -15,6 +16,10 @@ const SHIPMENTS_QUERY_KEY = ["shipments"] as const;
 
 export function useShipments() {
   return useQuery({ queryKey: SHIPMENTS_QUERY_KEY, queryFn: listShipmentsRequest });
+}
+
+export function useShipment(id: string) {
+  return useQuery({ queryKey: ["shipments", id], queryFn: () => getShipmentRequest(id), enabled: !!id });
 }
 
 export function useCreateShipment() {

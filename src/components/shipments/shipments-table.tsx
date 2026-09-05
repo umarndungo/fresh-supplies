@@ -4,6 +4,7 @@ import { Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShipmentStatusBadge } from "@/components/shipments/shipment-status-badge";
+import { ShipmentRiskCell } from "@/components/shipments/shipment-risk-cell";
 import { RoleGate } from "@/components/auth/role-gate";
 import { useDeleteShipment } from "@/hooks/use-shipments";
 import { formatDate } from "@/lib/utils";
@@ -22,6 +23,7 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
             <TableHead>Produce</TableHead>
             <TableHead>Scheduled</TableHead>
             <TableHead>Status</TableHead>
+            <TableHead>Risk Tier</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
@@ -34,6 +36,9 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
               <TableCell>{formatDate(shipment.scheduledDate)}</TableCell>
               <TableCell>
                 <ShipmentStatusBadge status={shipment.status} />
+              </TableCell>
+              <TableCell>
+                <ShipmentRiskCell shipment={shipment} />
               </TableCell>
               <TableCell className="text-right">
                 <RoleGate allowed={["ADMINISTRATOR", "LOGISTICS_MANAGER"]}>
