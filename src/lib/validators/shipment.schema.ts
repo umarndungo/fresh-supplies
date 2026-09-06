@@ -5,12 +5,15 @@ export const createShipmentSchema = z.object({
   destination: z.string().min(2, "Enter a destination location"),
   produceType: z.string().min(2, "Enter the produce type"),
   scheduledDate: z.string().min(1, "Select a scheduled date"),
-  latitude: z.coerce.number().optional(),
-  longitude: z.coerce.number().optional(),
-  temperatureC: z.coerce.number().optional(),
-  transitDurationHr: z.coerce.number().optional(),
-  pressurePsi: z.coerce.number().optional(),
-  quantityKg: z.coerce.number().optional(),
+  originLatitude: z.number().optional(),
+  originLongitude: z.number().optional(),
+  destinationLatitude: z.number().optional(),
+  destinationLongitude: z.number().optional(),
+  temperatureC: z.number().optional(),
+  transitDurationHr: z.number().optional(),
+  pressurePsi: z.number().optional(),
+  baselineLossPct: z.number().optional(),
+  quantityKg: z.number().optional(),
 });
 
 export type CreateShipmentFormValues = z.infer<typeof createShipmentSchema>;

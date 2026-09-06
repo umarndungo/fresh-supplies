@@ -20,6 +20,16 @@ def _to_entity(model: ShipmentModel) -> Shipment:
         created_by=model.created_by,
         created_at=model.created_at,
         updated_at=model.updated_at,
+        latitude=model.latitude,
+        longitude=model.longitude,
+        temperature_c=model.temperature_c,
+        transit_duration_hr=model.transit_duration_hr,
+        pressure_psi=model.pressure_psi,
+        baseline_loss_pct=model.baseline_loss_pct,
+        quantity_kg=model.quantity_kg,
+        spoilage_probability=model.spoilage_probability,
+        risk_tier=model.risk_tier,
+        spoil_prediction=model.spoil_prediction,
     )
 
 
@@ -45,6 +55,18 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
         scheduled_date,
         delivery_date,
         created_by,
+        # Origin location (source)
+        origin_latitude: float | None = None,
+        origin_longitude: float | None = None,
+        # Destination location (market)
+        destination_latitude: float | None = None,
+        destination_longitude: float | None = None,
+        # ML prediction fields (optional)
+        temperature_c: float | None = None,
+        transit_duration_hr: float | None = None,
+        pressure_psi: float | None = None,
+        baseline_loss_pct: float | None = None,
+        quantity_kg: float | None = None,
     ) -> Shipment:
         model = ShipmentModel(
             origin=origin,
@@ -54,6 +76,15 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
             scheduled_date=scheduled_date,
             delivery_date=delivery_date,
             created_by=created_by,
+            origin_latitude=origin_latitude,
+            origin_longitude=origin_longitude,
+            destination_latitude=destination_latitude,
+            destination_longitude=destination_longitude,
+            temperature_c=temperature_c,
+            transit_duration_hr=transit_duration_hr,
+            pressure_psi=pressure_psi,
+            baseline_loss_pct=baseline_loss_pct,
+            quantity_kg=quantity_kg,
         )
         self._session.add(model)
         await self._session.commit()
