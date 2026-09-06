@@ -5,6 +5,7 @@ import * as L from "leaflet";
 import "leaflet/dist/leaflet.css";
 import { KENYAN_MARKETS, type Market } from "@/components/map/kenyan-markets";
 import type { MarketRecommendationOut } from "@/types/ml.types";
+import type { Shipment } from "@/types/shipment.types";
 
 const DEFAULT_CENTER: [number, number] = [-0.5, 37.5];
 const DEFAULT_ZOOM = 7;
@@ -41,12 +42,36 @@ const originIcon = L.icon({
   className: "leaflet-marker-origin",
 });
 
+const ROUTE_COLORS = [
+  "#3b82f6", // blue
+  "#ef4444", // red
+  "#22c55e", // green
+  "#f59e0b", // amber
+  "#a855f7", // purple
+  "#ec4899", // pink
+  "#06b6d4", // cyan
+  "#f97316", // orange
+];
+
 interface ShipmentMapProps {
+  // Legacy single shipment props
   origin?: { lat: number; lng: number; name?: string };
   destination?: { lat: number; lng: number; name?: string };
   recommendations?: MarketRecommendationOut[];
   showAllMarkets?: boolean;
   height?: string;
+  // New multi-shipment props
+  shipments?: Array<{
+    id: string;
+    origin: { lat: number; lng: number; name?: string };
+    destination: { lat: number; lng: number; name?: string };
+    recommendations?: MarketRecommendationOut[];
+    produceType?: string;
+    status?: string;
+    riskTier?: "Fresh" | "At-Risk" | "Critical";
+  }>;
+  filterRiskTier?: "Fresh" | "At-Risk" | "Critical" | "all";
+  filterCrop?: string;
 }
 
 export function ShipmentMap({
@@ -55,11 +80,14 @@ export function ShipmentMap({
   recommendations = [],
   showAllMarkets = true,
   height = "400px",
+  shipments = [],
+  filterRiskTier = "all",
+  filterCrop,
 }: ShipmentMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
   const markersRef = useRef<L.Marker[]>([]);
-  const routeLayerRef = useRef<L.Polyline | null>(null);
+  const routeLayersRef = useRef<L.Polyline[]>([]);
   const [mapError, setMapError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -100,17 +128,40 @@ export function ShipmentMap({
     const map = mapInstanceRef.current;
     if (!map) return;
 
+    // Clear existing markers and routes
     markersRef.current.forEach((marker) => map.removeLayer(marker));
     markersRef.current = [];
 
-    if (routeLayerRef.current) {
-      map.removeLayer(routeLayerRef.current);
-      routeLayerRef.current = null;
-    }
+    routeLayersRef.current.forEach((layer) => map.removeLayer(layer));
+    routeLayersRef.current = [];
 
     const bounds: [number, number][] = [];
 
-    if (showAllMarkets) {
+    // Determine if we're in multi-shipment mode
+    const isMultiShipment = shipments.length > 0;
+    const activeShipments = isMultiShipment ? shipments : [{
+      id: "single",
+      origin,
+      destination,
+      recommendations,
+      produceType: undefined,
+      status: undefined,
+      riskTier: undefined,
+    }];
+
+    // Filter shipments
+    const filteredShipments = activeShipments.filter((shipment) => {
+      if (filterRiskTier !== "all" && shipment.riskTier && shipment.riskTier !== filterRiskTier) {
+        return false;
+      }
+      if (filterCrop && shipment.produceType && shipment.produceType.toLowerCase() !== filterCrop.toLowerCase()) {
+        return false;
+      }
+      return true;
+    });
+
+    // Show all markets if enabled (only in single shipment mode or when no shipments)
+    if (showAllMarkets && !isMultiShipment) {
       KENYAN_MARKETS.forEach((market) => {
         const isRecommended = recommendations.some((r) => r.market_id === market.id);
         const isDestination = destination && market.id === destination.name?.toLowerCase().replace(/\s+/g, "-");
@@ -128,55 +179,69 @@ export function ShipmentMap({
       });
     }
 
-    if (origin) {
-      const marker = L.marker([origin.lat, origin.lng], { icon: originIcon })
-        .bindPopup(`<strong>Origin</strong><br/>${origin.name ?? "Shipment Origin"}`);
-      marker.addTo(map);
-      markersRef.current.push(marker);
-      bounds.push([origin.lat, origin.lng]);
-    }
+    // Render each shipment
+    filteredShipments.forEach((shipment, index) => {
+      const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
+      const shipmentRecs = shipment.recommendations ?? [];
 
-    if (destination) {
-      const marker = L.marker([destination.lat, destination.lng], { icon: recommendedMarketIcon })
-        .bindPopup(`<strong>Destination</strong><br/>${destination.name ?? "Shipment Destination"}`);
-      marker.addTo(map);
-      markersRef.current.push(marker);
-      bounds.push([destination.lat, destination.lng]);
-    }
-
-    if (origin && destination) {
-      const route = L.polyline(
-        [
-          [origin.lat, origin.lng],
-          [destination.lat, destination.lng],
-        ],
-        { color: "#3b82f6", weight: 3, opacity: 0.7, dashArray: "10, 10" }
-      ).addTo(map);
-      routeLayerRef.current = route;
-      bounds.push([origin.lat, origin.lng], [destination.lat, destination.lng]);
-    }
-
-    recommendations.forEach((rec) => {
-      const market = KENYAN_MARKETS.find((m) => m.id === rec.market_id);
-      if (market && !showAllMarkets) {
-        const marker = L.marker([market.latitude, market.longitude], { icon: recommendedMarketIcon })
+      // Origin marker
+      if (shipment.origin) {
+        const marker = L.marker([shipment.origin.lat, shipment.origin.lng], { icon: originIcon })
           .bindPopup(
-            `<strong>${market.name}</strong><br/>${market.region}<br/>
-             Price: ${rec.price_per_kg.toFixed(2)} KES/kg<br/>
-             Distance: ${rec.distance_km.toFixed(1)} km<br/>
-             Spoilage: ${(rec.spoilage_probability * 100).toFixed(1)}%<br/>
-             Revenue: ${rec.revenue_retained.toLocaleString()} KES`
+            `<strong>Origin</strong><br/>${shipment.origin.name ?? "Shipment Origin"}<br/>
+             ${shipment.produceType ? `Crop: ${shipment.produceType}` : ""}
+             ${shipment.riskTier ? `Risk: ${shipment.riskTier}` : ""}`
           );
         marker.addTo(map);
         markersRef.current.push(marker);
-        bounds.push([market.latitude, market.longitude]);
+        bounds.push([shipment.origin.lat, shipment.origin.lng]);
       }
+
+      // Destination marker
+      if (shipment.destination) {
+        const marker = L.marker([shipment.destination.lat, shipment.destination.lng], { icon: recommendedMarketIcon })
+          .bindPopup(`<strong>Destination</strong><br/>${shipment.destination.name ?? "Shipment Destination"}`);
+        marker.addTo(map);
+        markersRef.current.push(marker);
+        bounds.push([shipment.destination.lat, shipment.destination.lng]);
+      }
+
+      // Route line
+      if (shipment.origin && shipment.destination) {
+        const route = L.polyline(
+          [
+            [shipment.origin.lat, shipment.origin.lng],
+            [shipment.destination.lat, shipment.destination.lng],
+          ],
+          { color, weight: 3, opacity: 0.7, dashArray: "10, 10" }
+        ).addTo(map);
+        routeLayersRef.current.push(route);
+        bounds.push([shipment.origin.lat, shipment.origin.lng], [shipment.destination.lat, shipment.destination.lng]);
+      }
+
+      // Recommended markets for this shipment
+      shipmentRecs.forEach((rec) => {
+        const market = KENYAN_MARKETS.find((m) => m.id === rec.market_id);
+        if (market && (!showAllMarkets || isMultiShipment)) {
+          const marker = L.marker([market.latitude, market.longitude], { icon: recommendedMarketIcon })
+            .bindPopup(
+              `<strong>${market.name}</strong><br/>${market.region}<br/>
+               Price: ${rec.price_per_kg.toFixed(2)} KES/kg<br/>
+               Distance: ${rec.distance_km.toFixed(1)} km<br/>
+               Spoilage: ${(rec.spoilage_probability * 100).toFixed(1)}%<br/>
+               Revenue: ${rec.revenue_retained.toLocaleString()} KES`
+            );
+          marker.addTo(map);
+          markersRef.current.push(marker);
+          bounds.push([market.latitude, market.longitude]);
+        }
+      });
     });
 
     if (bounds.length > 0) {
       map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50] });
     }
-  }, [origin, destination, recommendations, showAllMarkets]);
+  }, [origin, destination, recommendations, showAllMarkets, shipments, filterRiskTier, filterCrop]);
 
   if (mapError) {
     return (

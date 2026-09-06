@@ -65,14 +65,14 @@ const ROLE_CONFIG: Record<UserRole, {
       { label: "At Risk", value: "—", icon: AlertTriangle, color: "text-amber-600" },
       { label: "Avg Spoilage", value: "—%", icon: TrendingUp, color: "text-red-600" },
     ],
-    sections: [
-      {
-        title: "Shipments",
-        items: [
-          { label: "All Shipments", href: "/dashboard/shipments", description: "Track and manage shipments", icon: Truck },
-          { label: "Create Shipment", href: "/dashboard/shipments", description: "Schedule new shipment", icon: Package },
-        ],
-      },
+sections: [
+        {
+          title: "Shipments",
+          items: [
+            { label: "All Shipments", href: "/dashboard/shipments", description: "Track and manage shipments", icon: Truck },
+            { label: "Create Shipment", href: "/dashboard/shipments?create=true", description: "Schedule new shipment", icon: Package },
+          ],
+        },
       {
         title: "Inventory & Routes",
         items: [
@@ -103,28 +103,28 @@ const ROLE_CONFIG: Record<UserRole, {
       { label: "Active Shipments", value: "—", icon: Truck, color: "text-blue-600" },
       { label: "Revenue This Month", value: "— KES", icon: DollarSign, color: "text-emerald-600" },
     ],
-    sections: [
-      {
-        title: "My Produce",
-        items: [
-          { label: "Inventory", href: "/dashboard/produce", description: "Manage your produce stock", icon: Package },
-          { label: "Add Harvest", href: "/dashboard/produce", description: "Record new harvest", icon: Package },
-        ],
-      },
-      {
-        title: "My Shipments",
-        items: [
-          { label: "Track Shipments", href: "/dashboard/shipments", description: "Your shipments only", icon: Truck },
-          { label: "Schedule Delivery", href: "/dashboard/shipments", description: "Create new shipment", icon: Package },
-        ],
-      },
-      {
-        title: "Recommendations",
-        items: [
-          { label: "Best Markets", href: "/dashboard/analytics", description: "Where to sell for max revenue", icon: MapPin },
-          { label: "Risk Alerts", href: "/dashboard/analytics", description: "Spoilage warnings", icon: AlertTriangle },
-        ],
-      },
+sections: [
+        {
+          title: "My Produce",
+          items: [
+            { label: "Inventory", href: "/dashboard/produce", description: "Manage your produce stock", icon: Package },
+            { label: "Add Harvest", href: "/dashboard/produce?add=true", description: "Record new harvest", icon: Package },
+          ],
+        },
+        {
+          title: "My Shipments",
+          items: [
+            { label: "Track Shipments", href: "/dashboard/shipments", description: "Your shipments only", icon: Truck },
+            { label: "Schedule Delivery", href: "/dashboard/shipments?create=true", description: "Create new shipment", icon: Package },
+          ],
+        },
+        {
+          title: "Recommendations",
+          items: [
+            { label: "Best Markets", href: "/dashboard/analytics", description: "Where to sell for max revenue", icon: MapPin },
+            { label: "Risk Alerts", href: "/dashboard/analytics?alerts=true", description: "Spoilage warnings", icon: AlertTriangle },
+          ],
+        },
     ],
   },
   MARKET_ANALYST: {
@@ -145,7 +145,7 @@ const ROLE_CONFIG: Record<UserRole, {
         title: "Market Analysis",
         items: [
           { label: "Market Insights", href: "/dashboard/market-insights", description: "Price trends by market", icon: MapPin },
-          { label: "Price History", href: "/dashboard/market-insights", description: "Historical price data", icon: TrendingUp },
+          { label: "Price History", href: "/dashboard/market-insights?history=true", description: "Historical price data", icon: TrendingUp },
         ],
       },
       {
@@ -155,13 +155,13 @@ const ROLE_CONFIG: Record<UserRole, {
           { label: "Route Efficiency", href: "/dashboard/routes", description: "Route cost analysis", icon: Route },
         ],
       },
-      {
-        title: "Reporting",
-        items: [
-          { label: "Market Reports", href: "/dashboard/reports", description: "Generate market reports", icon: DollarSign },
-          { label: "Export Data", href: "/dashboard/reports", description: "Download CSV/Excel", icon: Package },
-        ],
-      },
+{
+          title: "Reporting",
+          items: [
+            { label: "Market Reports", href: "/dashboard/reports", description: "Generate market reports", icon: DollarSign },
+            { label: "Export Data", href: "/dashboard/reports?export=true", description: "Download CSV/Excel", icon: Package },
+          ],
+        },
     ],
   },
 };

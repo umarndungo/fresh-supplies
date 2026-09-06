@@ -42,7 +42,12 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: Route,
         roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER"],
       },
-      { title: "Reports", href: "/dashboard/reports", icon: FileBarChart },
+      {
+        title: "Reports",
+        href: "/dashboard/reports",
+        icon: FileBarChart,
+        roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER", "MARKET_ANALYST"],
+      },
     ],
   },
   {
