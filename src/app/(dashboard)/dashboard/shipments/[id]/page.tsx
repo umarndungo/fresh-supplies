@@ -24,8 +24,8 @@ import type { MarketRecommendationOut } from "@/types/ml.types";
 function buildSpoilageRequest(shipment: Shipment) {
   return {
     crop_type: shipment.produceType,
-    latitude: shipment.latitude ?? -1.2921,
-    longitude: shipment.longitude ?? 36.8219,
+    latitude: shipment.originLatitude ?? -1.2921,
+    longitude: shipment.originLongitude ?? 36.8219,
     Temperature_C: shipment.temperatureC ?? 25,
     Transit_Duration_Hr: shipment.transitDurationHr ?? 4,
     Pressure_PSI: shipment.pressurePsi ?? 30,
@@ -50,6 +50,10 @@ function getDestinationCoordinates(shipment: Shipment): { lat: number; lng: numb
   const destMarket = KENYAN_MARKETS.find((m) => m.name.toLowerCase() === shipment.destination.toLowerCase());
   if (destMarket) {
     return { lat: destMarket.latitude, lng: destMarket.longitude, name: destMarket.name };
+  }
+  // Fallback: use stored destination coordinates if available
+  if (shipment.destinationLatitude !== undefined && shipment.destinationLongitude !== undefined) {
+    return { lat: shipment.destinationLatitude, lng: shipment.destinationLongitude, name: shipment.destination };
   }
   return { lat: -1.2921, lng: 36.8219, name: shipment.destination };
 }
@@ -373,7 +377,7 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
         </CardHeader>
         <CardContent>
           <ShipmentMap
-            origin={shipment.latitude && shipment.longitude ? { lat: shipment.latitude, lng: shipment.longitude, name: shipment.origin } : undefined}
+            origin={shipment.originLatitude && shipment.originLongitude ? { lat: shipment.originLatitude, lng: shipment.originLongitude, name: shipment.origin } : undefined}
             destination={getDestinationCoordinates(shipment) ?? undefined}
             recommendations={marketRecommendations}
             showAllMarkets={true}
@@ -428,12 +432,20 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
           <CardContent className="space-y-3">
             <dl className="grid gap-3 sm:grid-cols-2">
               <div>
-                <dt className="text-sm text-muted-foreground">Latitude</dt>
-                <dd>{shipment.latitude ?? "Not set"}</dd>
+                <dt className="text-sm text-muted-foreground">Origin Latitude</dt>
+                <dd>{shipment.originLatitude ?? "Not set"}</dd>
               </div>
               <div>
-                <dt className="text-sm text-muted-foreground">Longitude</dt>
-                <dd>{shipment.longitude ?? "Not set"}</dd>
+                <dt className="text-sm text-muted-foreground">Origin Longitude</dt>
+                <dd>{shipment.originLongitude ?? "Not set"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Destination Latitude</dt>
+                <dd>{shipment.destinationLatitude ?? "Not set"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Destination Longitude</dt>
+                <dd>{shipment.destinationLongitude ?? "Not set"}</dd>
               </div>
               <div>
                 <dt className="text-sm text-muted-foreground">Temperature (°C)</dt>
@@ -456,9 +468,9 @@ export default async function ShipmentDetailPage({ params }: { params: Promise<{
                 <dd>{shipment.quantityKg ?? "Not set"}</dd>
               </div>
             </dl>
-            {!shipment.latitude && (
+            {!shipment.originLatitude && (
               <p className="text-xs text-muted-foreground">
-                Add location and sensor data when creating/editing a shipment to enable spoilage predictions.
+                Add origin location when creating/editing a shipment to enable spoilage predictions.
               </p>
             )}
           </CardContent>

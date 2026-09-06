@@ -8,8 +8,8 @@ import type { MarketRecommendationOut } from "@/types/ml.types";
 function buildMarketRequest(shipment: Shipment) {
   return {
     crop_type: shipment.produceType,
-    latitude: shipment.latitude ?? -1.2921,
-    longitude: shipment.longitude ?? 36.8219,
+    latitude: shipment.originLatitude ?? -1.2921,
+    longitude: shipment.originLongitude ?? 36.8219,
     Temperature_C: shipment.temperatureC ?? 25,
     Transit_Duration_Hr: shipment.transitDurationHr ?? 4,
     Pressure_PSI: shipment.pressurePsi ?? 30,
@@ -20,7 +20,7 @@ function buildMarketRequest(shipment: Shipment) {
 }
 
 export function useAllMarketRecommendations(shipments: Shipment[]) {
-  const shipmentsWithLocation = shipments.filter((s) => s.latitude && s.longitude);
+  const shipmentsWithLocation = shipments.filter((s) => s.originLatitude && s.originLongitude);
 
   return useQuery({
     queryKey: ["market-recommendations", shipmentsWithLocation.map((s) => s.id).join(",")],

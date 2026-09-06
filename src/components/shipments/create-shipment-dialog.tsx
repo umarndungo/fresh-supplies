@@ -25,8 +25,10 @@ export function CreateShipmentDialog() {
       destination: "",
       produceType: "",
       scheduledDate: "",
-      latitude: undefined,
-      longitude: undefined,
+      originLatitude: undefined,
+      originLongitude: undefined,
+      destinationLatitude: undefined,
+      destinationLongitude: undefined,
       temperatureC: undefined,
       transitDurationHr: undefined,
       pressurePsi: undefined,
@@ -124,13 +126,13 @@ export function CreateShipmentDialog() {
               )}
             />
             <LocationPicker
-              latitude={form.watch("latitude")}
-              longitude={form.watch("longitude")}
+              latitude={form.watch("originLatitude")}
+              longitude={form.watch("originLongitude")}
               onLocationChange={(lat, lng) => {
-                form.setValue("latitude", lat);
-                form.setValue("longitude", lng);
+                form.setValue("originLatitude", lat);
+                form.setValue("originLongitude", lng);
               }}
-              label="Origin Location (for ML predictions)"
+              label="Origin Location (source for ML predictions)"
             />
             <Button
               type="button"
