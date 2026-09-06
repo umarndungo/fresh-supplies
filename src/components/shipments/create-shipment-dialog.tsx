@@ -1,19 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogBody, DialogTrigger } from "@/components/ui/dialog";
 import { createShipmentSchema, type CreateShipmentFormValues } from "@/lib/validators/shipment.schema";
 import { useCreateShipment } from "@/hooks/use-shipments";
+import { LocationPicker } from "@/components/map/location-picker";
 
 export function CreateShipmentDialog() {
   const [open, setOpen] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const searchParams = useSearchParams();
   const createShipment = useCreateShipment();
   const form = useForm<CreateShipmentFormValues>({
     resolver: zodResolver(createShipmentSchema),
@@ -30,6 +33,18 @@ export function CreateShipmentDialog() {
       quantityKg: undefined,
     },
   });
+
+  // Auto-open dialog when ?create=true is in URL
+  useEffect(() => {
+    const shouldOpen = searchParams.get("create") === "true";
+    if (shouldOpen) {
+      setOpen(true);
+      // Clean up URL without reloading
+      const url = new URL(window.location.href);
+      url.searchParams.delete("create");
+      window.history.replaceState({}, "", url);
+    }
+  }, [searchParams]);
 
   async function onSubmit(values: CreateShipmentFormValues) {
     try {
@@ -53,8 +68,9 @@ export function CreateShipmentDialog() {
         <DialogHeader>
           <DialogTitle>Schedule a shipment</DialogTitle>
         </DialogHeader>
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+        <DialogBody>
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <FormField
               control={form.control}
               name="origin"
@@ -107,6 +123,15 @@ export function CreateShipmentDialog() {
                 </FormItem>
               )}
             />
+            <LocationPicker
+              latitude={form.watch("latitude")}
+              longitude={form.watch("longitude")}
+              onLocationChange={(lat, lng) => {
+                form.setValue("latitude", lat);
+                form.setValue("longitude", lng);
+              }}
+              label="Origin Location (for ML predictions)"
+            />
             <Button
               type="button"
               variant="ghost"
@@ -119,32 +144,6 @@ export function CreateShipmentDialog() {
             </Button>
             {showAdvanced && (
               <div className="space-y-4 border-t pt-4">
-                <FormField
-                  control={form.control}
-                  name="latitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Latitude</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="any" placeholder="-1.2921" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="longitude"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Longitude</FormLabel>
-                      <FormControl>
-                        <Input type="number" step="any" placeholder="36.8219" {...field} />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
                 <FormField
                   control={form.control}
                   name="temperatureC"
@@ -199,15 +198,16 @@ export function CreateShipmentDialog() {
                 />
               </div>
             )}
+          </form>
+        </Form>
+          </DialogBody>
             <DialogFooter>
               <Button type="submit" disabled={createShipment.isPending}>
                 {createShipment.isPending ? <Loader2 className="size-4 animate-spin" /> : null}
                 Create shipment
               </Button>
             </DialogFooter>
-          </form>
-        </Form>
-      </DialogContent>
+        </DialogContent>
     </Dialog>
   );
 }

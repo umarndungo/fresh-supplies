@@ -21,15 +21,18 @@ export function middleware(request: NextRequest) {
   const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
   const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
 
+  // Protected routes: require refresh token
   if (isProtected && !hasRefreshToken) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirectTo", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
-  if (isAuthPage && hasRefreshToken) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
-  }
+  // Auth pages: DO NOT redirect based on refresh token alone
+  // The token might be expired - let client-side auth validate and handle redirects
+  // if (isAuthPage && hasRefreshToken) {
+  //   return NextResponse.redirect(new URL("/dashboard", request.url));
+  // }
 
   return NextResponse.next();
 }

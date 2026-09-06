@@ -19,6 +19,18 @@ export const KENYAN_MARKETS: Market[] = [
   { id: "bomet", name: "Bomet Market", region: "Bomet", latitude: -0.7900, longitude: 35.3400 },
 ];
 
+export const CROP_BASE_PRICE_KES: Record<string, number> = {
+  Maize: 45.0,
+  Beans: 110.0,
+  Potatoes: 55.0,
+  Bananas: 60.0,
+  Avocados: 120.0,
+  Kale: 40.0,
+  Onions: 70.0,
+  Tomatoes: 90.0,
+  Mangoes: 85.0,
+};
+
 export function getMarketById(id: string): Market | undefined {
   return KENYAN_MARKETS.find((m) => m.id === id);
 }
