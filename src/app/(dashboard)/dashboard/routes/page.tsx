@@ -193,11 +193,11 @@ export default function RoutesPage() {
           <ShipmentMap
             shipments={filteredShipments.map((s) => ({
               id: s.id,
-              origin: s.latitude && s.longitude 
-                ? { lat: s.latitude, lng: s.longitude, name: s.origin } 
+              origin: s.originLatitude && s.originLongitude 
+                ? { lat: s.originLatitude, lng: s.originLongitude, name: s.origin } 
                 : { lat: -1.2921, lng: 36.8219, name: s.origin },
-              destination: s.latitude && s.longitude 
-                ? { lat: -1.2921, lng: 36.8219, name: s.destination } 
+              destination: s.destinationLatitude && s.destinationLongitude 
+                ? { lat: s.destinationLatitude, lng: s.destinationLongitude, name: s.destination } 
                 : { lat: -1.2921, lng: 36.8219, name: s.destination },
               recommendations: allRecommendations?.[s.id] ?? [],
               produceType: s.produceType,

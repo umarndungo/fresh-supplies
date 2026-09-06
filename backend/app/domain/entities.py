@@ -75,6 +75,21 @@ class Shipment:
     created_by: UUID
     created_at: datetime
     updated_at: datetime
+    # Origin location (source)
+    origin_latitude: float | None = None
+    origin_longitude: float | None = None
+    # Destination location (market)
+    destination_latitude: float | None = None
+    destination_longitude: float | None = None
+    # ML prediction fields
+    temperature_c: float | None = None
+    transit_duration_hr: float | None = None
+    pressure_psi: float | None = None
+    baseline_loss_pct: float | None = None
+    quantity_kg: float | None = None
+    spoilage_probability: float | None = None
+    risk_tier: str | None = None
+    spoil_prediction: bool | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -13,8 +13,8 @@ interface ShipmentRiskCellProps {
 function buildSpoilageRequest(shipment: Shipment) {
   return {
     crop_type: shipment.produceType,
-    latitude: shipment.latitude ?? -1.2921,
-    longitude: shipment.longitude ?? 36.8219,
+    latitude: shipment.originLatitude ?? -1.2921,
+    longitude: shipment.originLongitude ?? 36.8219,
     Temperature_C: shipment.temperatureC ?? 25,
     Transit_Duration_Hr: shipment.transitDurationHr ?? 4,
     Pressure_PSI: shipment.pressurePsi ?? 30,
@@ -39,7 +39,7 @@ export function ShipmentRiskCell({ shipment }: ShipmentRiskCellProps) {
       return;
     }
 
-    if (!shipment.latitude && !shipment.longitude) {
+    if (!shipment.originLatitude && !shipment.originLongitude) {
       setIsLoading(false);
       return;
     }
@@ -58,7 +58,7 @@ export function ShipmentRiskCell({ shipment }: ShipmentRiskCellProps) {
         setIsLoading(false);
       },
     });
-  }, [shipment.id, shipment.latitude, shipment.longitude, predictSpoilage]);
+  }, [shipment.id, shipment.originLatitude, shipment.originLongitude, predictSpoilage]);
 
   if (isLoading) {
     return <Skeleton className="h-5 w-20" />;

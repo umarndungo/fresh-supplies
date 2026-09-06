@@ -65,6 +65,21 @@ class ShipmentModel(Base):
     photo_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
     photo_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     client_id: Mapped[str | None] = mapped_column(String(36), unique=True, nullable=True)
+    # Origin location (source) - for ML predictions
+    origin_latitude: Mapped[float | None] = mapped_column(nullable=True)
+    origin_longitude: Mapped[float | None] = mapped_column(nullable=True)
+    # Destination location (market) coordinates
+    destination_latitude: Mapped[float | None] = mapped_column(nullable=True)
+    destination_longitude: Mapped[float | None] = mapped_column(nullable=True)
+    # ML prediction fields
+    temperature_c: Mapped[float | None] = mapped_column(nullable=True)
+    transit_duration_hr: Mapped[float | None] = mapped_column(nullable=True)
+    pressure_psi: Mapped[float | None] = mapped_column(nullable=True)
+    baseline_loss_pct: Mapped[float | None] = mapped_column(nullable=True)
+    quantity_kg: Mapped[float | None] = mapped_column(nullable=True)
+    spoilage_probability: Mapped[float | None] = mapped_column(nullable=True)
+    risk_tier: Mapped[str | None] = mapped_column(nullable=True)
+    spoil_prediction: Mapped[bool | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
