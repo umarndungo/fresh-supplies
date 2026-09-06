@@ -68,6 +68,21 @@ class ShipmentOut(BaseModel):
     created_by: UUID = Field(serialization_alias="createdBy")
     created_at: datetime = Field(serialization_alias="createdAt")
     updated_at: datetime = Field(serialization_alias="updatedAt")
+    # Origin location (source)
+    origin_latitude: float | None = Field(default=None, serialization_alias="originLatitude")
+    origin_longitude: float | None = Field(default=None, serialization_alias="originLongitude")
+    # Destination location (market)
+    destination_latitude: float | None = Field(default=None, serialization_alias="destinationLatitude")
+    destination_longitude: float | None = Field(default=None, serialization_alias="destinationLongitude")
+    # ML prediction fields
+    temperature_c: float | None = Field(default=None, serialization_alias="temperatureC")
+    transit_duration_hr: float | None = Field(default=None, serialization_alias="transitDurationHr")
+    pressure_psi: float | None = Field(default=None, serialization_alias="pressurePsi")
+    baseline_loss_pct: float | None = Field(default=None, serialization_alias="baselineLossPct")
+    quantity_kg: float | None = Field(default=None, serialization_alias="quantityKg")
+    spoilage_probability: float | None = None
+    risk_tier: str | None = None
+    spoil_prediction: bool | None = None
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
@@ -77,6 +92,18 @@ class CreateShipmentRequest(BaseModel):
     destination: str = Field(min_length=2)
     produce_type: str = Field(alias="produceType", min_length=2)
     scheduled_date: datetime = Field(alias="scheduledDate")
+    # Origin location (source) - for ML predictions
+    origin_latitude: float | None = Field(default=None, alias="originLatitude")
+    origin_longitude: float | None = Field(default=None, alias="originLongitude")
+    # Destination location (market) coordinates - auto-filled from market selection
+    destination_latitude: float | None = Field(default=None, alias="destinationLatitude")
+    destination_longitude: float | None = Field(default=None, alias="destinationLongitude")
+    # ML prediction fields (optional)
+    temperature_c: float | None = Field(default=None, alias="temperatureC")
+    transit_duration_hr: float | None = Field(default=None, alias="transitDurationHr")
+    pressure_psi: float | None = Field(default=None, alias="pressurePsi")
+    baseline_loss_pct: float | None = Field(default=None, alias="baselineLossPct")
+    quantity_kg: float | None = Field(default=None, alias="quantityKg")
 
     model_config = {"populate_by_name": True}
 

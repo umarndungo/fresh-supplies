@@ -13,9 +13,13 @@ export interface Shipment {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  // Origin location (source)
+  originLatitude?: number;
+  originLongitude?: number;
+  // Destination location (market)
+  destinationLatitude?: number;
+  destinationLongitude?: number;
   // ML prediction fields (populated on demand)
-  latitude?: number;
-  longitude?: number;
   temperatureC?: number;
   transitDurationHr?: number;
   pressurePsi?: number;
@@ -31,9 +35,13 @@ export interface CreateShipmentPayload {
   destination: string;
   produceType: string;
   scheduledDate: string;
+  // Origin location (source) - for ML predictions
+  originLatitude?: number;
+  originLongitude?: number;
+  // Destination location (market) coordinates - auto-filled from market selection
+  destinationLatitude?: number;
+  destinationLongitude?: number;
   // ML prediction fields
-  latitude?: number;
-  longitude?: number;
   temperatureC?: number;
   transitDurationHr?: number;
   pressurePsi?: number;
