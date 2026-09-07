@@ -8,6 +8,11 @@ export async function listShipmentsRequest(): Promise<Shipment[]> {
   return data.data;
 }
 
+export async function getShipmentRequest(id: string): Promise<Shipment> {
+  const { data } = await apiClient.get<ApiSuccessResponse<Shipment>>(API_ENDPOINTS.shipments.byId(id));
+  return data.data;
+}
+
 export async function createShipmentRequest(payload: CreateShipmentPayload): Promise<Shipment> {
   const { data } = await apiClient.post<ApiSuccessResponse<Shipment>>(API_ENDPOINTS.shipments.base, payload);
   return data.data;

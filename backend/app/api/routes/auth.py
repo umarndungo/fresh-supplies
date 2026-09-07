@@ -67,9 +67,15 @@ async def refresh(
 ):
     refresh_token = request.cookies.get(settings.REFRESH_COOKIE_NAME)
     if not refresh_token:
+        response.delete_cookie(settings.REFRESH_COOKIE_NAME, path="/")
         raise UnauthorizedError("No refresh token was provided.")
 
-    _user, access_token, _expires_in, new_refresh_token = await auth_service.refresh(refresh_token)
+    try:
+        _user, access_token, _expires_in, new_refresh_token = await auth_service.refresh(refresh_token)
+    except UnauthorizedError:
+        # Refresh token is invalid/expired - delete the cookie
+        response.delete_cookie(settings.REFRESH_COOKIE_NAME, path="/")
+        raise
     _set_refresh_cookie(response, new_refresh_token)
     return {"data": {"accessToken": access_token}}
 

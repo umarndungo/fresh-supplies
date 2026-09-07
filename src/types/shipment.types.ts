@@ -1,5 +1,7 @@
 export type ShipmentStatus = "SCHEDULED" | "IN_TRANSIT" | "DELIVERED" | "CANCELLED";
 
+export type RiskTier = "Fresh" | "At-Risk" | "Critical";
+
 export interface Shipment {
   id: string;
   origin: string;
@@ -11,6 +13,21 @@ export interface Shipment {
   createdBy: string;
   createdAt: string;
   updatedAt: string;
+  // Origin location (source)
+  originLatitude?: number;
+  originLongitude?: number;
+  // Destination location (market)
+  destinationLatitude?: number;
+  destinationLongitude?: number;
+  // ML prediction fields (populated on demand)
+  temperatureC?: number;
+  transitDurationHr?: number;
+  pressurePsi?: number;
+  baselineLossPct?: number;
+  quantityKg?: number;
+  spoilageProbability?: number;
+  riskTier?: RiskTier;
+  spoilPrediction?: boolean;
 }
 
 export interface CreateShipmentPayload {
@@ -18,6 +35,18 @@ export interface CreateShipmentPayload {
   destination: string;
   produceType: string;
   scheduledDate: string;
+  // Origin location (source) - for ML predictions
+  originLatitude?: number;
+  originLongitude?: number;
+  // Destination location (market) coordinates - auto-filled from market selection
+  destinationLatitude?: number;
+  destinationLongitude?: number;
+  // ML prediction fields
+  temperatureC?: number;
+  transitDurationHr?: number;
+  pressurePsi?: number;
+  baselineLossPct?: number;
+  quantityKg?: number;
 }
 
 export interface UpdateShipmentPayload {
