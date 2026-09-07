@@ -93,7 +93,9 @@ make deliberately, not default into.
 
 ## 4. Frontend deployment — don't put this on the Oracle VM
 
-Recommend **Vercel's free tier** for the Next.js frontend instead of self-hosting on
+- **Local dev** runs the frontend in Docker too (`docker compose up -d`, `next
+  dev` with live reload) — the Vercel recommendation below is about **prod**:
+- Recommend **Vercel's free tier** for the Next.js frontend instead of self-hosting on
 the same constrained VM:
 - Next.js is Vercel's native target — zero-config builds, preview deployments per PR,
   and it doesn't compete with the backend for the VM's limited 12GB RAM.
@@ -161,6 +163,18 @@ split):
    compose pull && up -d` via a small deploy script) — **run `alembic upgrade head`
    as an explicit, logged step before restarting the app container**, never silently
    inside app startup, so a bad migration is visible in the deploy log, not buried.
+
+**Database provisioning (staging/prod)**
+- Provision the application database role **before** the first `alembic upgrade
+  head`, and run migrations as the app user rather than the superuser. The role
+  name, password, and database are `DB_USER` / `DB_PASS` / `DB_NAME` in the
+  environment's private `.env` file. Both tasks are containerized one-shots:
+  on a fresh Postgres volume `docker compose up` provisions automatically via
+  `db/init/provision.sh`; on an existing volume run
+  `docker compose run --rm db-bootstrap` once. Migrations go through
+  `docker compose run --rm db-migrate` (Alembic as the app user, host=`postgres`),
+  not the superuser. The `backend/.env` DATABASE_URL only needs `%40` encoding if
+  the backend runs on the host rather than in a container.
 
 **Data engine (`post_harvest_data_engine/`)**
 1. On PR: run the full pytest suite — **explicitly assert the model-regression AUC
@@ -304,12 +318,14 @@ Free Ampere A1 VM — CURRENTLY 2 OCPU / 12GB RAM (Oracle silently halved this f
 as provisional, verify against current Oracle docs before assuming more capacity is
 available). Frontend deploys separately on Vercel's free tier, not on the same VM.
 
-Everything backend-side is Docker Compose based: backend (FastAPI/uvicorn), postgres,
-a reconciliation worker, behind Caddy for reverse proxy + automatic TLS. Data engine
-training does NOT run as a long-lived service on this VM — it's a scheduled batch job
-(GitHub Actions or VM cron) that produces versioned artifacts and pushes them to
-/data/models/<version>/ on the VM; the backend picks up a new version via a manual/
-approved restart, not a live hot-swap.
+Everything backend-side is Docker Compose based: backend (FastAPI/uvicorn),
+postgres, a reconciliation worker, behind Caddy for reverse proxy + automatic
+TLS. Local dev runs postgres + backend + frontend in Docker (one-shot
+`db-bootstrap`/`db-migrate` compose tasks provision the DB and run Alembic as the
+app user). Data engine training does NOT run as a long-lived service on this VM
+— it's a scheduled batch job (GitHub Actions or VM cron) that produces versioned
+artifacts and pushes them to /data/models/<version>/ on the VM; the backend picks
+up a new version via a manual/approved restart, not a live hot-swap.
 
 DO NOT propose a Kubernetes-based deployment, a multi-node setup, or any
 infrastructure that assumes more than ~2 OCPU/12GB of always-on compute — this is a
@@ -342,11 +358,15 @@ is local disk, no resize pipeline yet.
 ## 13. Suggested build order
 
 1. Provision the Oracle VM at the correct (reduced) size, set up Caddy + domain +
-   TLS, and get a bare `docker compose up` backend+Postgres stack running manually —
-   prove the target environment works before automating deploys to it.
+   TLS, and get a bare `docker compose up` stack running manually — on a fresh
+   volume the app role is provisioned automatically via `db/init/provision.sh`;
+   for an existing volume run `docker compose run --rm db-bootstrap`, then
+   `docker compose run --rm db-migrate`. Prove the target environment works
+   before automating deploys to it.
 2. Backend CI: lint/test on PR, build+push image on merge, manual first deploy to
    confirm the pipeline before automating the deploy step itself.
-3. Alembic migration step wired explicitly into the deploy pipeline (§7).
+3. Alembic migration step wired explicitly into the deploy pipeline (§7) —
+   `docker compose run --rm db-migrate` as a logged deploy step.
 4. Frontend on Vercel — fastest win, mostly configuration not infrastructure.
 5. Backup jobs (Postgres dump + photo sync) — do this **before** real user data
    accumulates, not after, given the single-VM/local-disk risk already accepted.

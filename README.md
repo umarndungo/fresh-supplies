@@ -31,46 +31,67 @@ fresh-supplies/
 ├── src/                      # Next.js web frontend
 ├── post_harvest_data_engine/ # ML training, ETL, data pipeline
 ├── docs/                     # Developer handoff docs, API contracts
-├── docker-compose.yml        # PostgreSQL 16
+├── db/                       # PostgreSQL provisioning (init/provision.sh + bootstrap.sh wrapper)
+├── backend/Dockerfile        # FastAPI dev image (uvicorn --reload)
+├── Dockerfile                # Next.js dev image (next dev)
+├── docker-compose.yml        # Full stack: postgres, backend, frontend + one-shot DB tasks
 └── PROJECT_PLAN.md           # 5-phase project roadmap
 ```
 
 ## Getting Started
 
+Everything runs in Docker: Postgres, the FastAPI backend, and the Next.js
+frontend, plus containerized one-shot tasks for DB provisioning and migrations.
+
 ### Prerequisites
 
-- Python 3.12+
-- Node.js 18+
-- PostgreSQL 16 (or Docker)
+- Docker + Docker Compose (v2) — nothing else is required at runtime
+- Python 3.12+ / Node 22+ only if you want to run backend/frontend on the host
+  instead of in containers
 
-### 1. Database
+### 1. Environment (private, gitignored)
+
+Two private env files. Secrets never leave these:
 
 ```bash
-docker compose up -d          # Starts PostgreSQL 16 on localhost:5432
+cp .env.example .env          # edit DB_NAME, DB_USER, DB_PASS and NEXT_PUBLIC_* as you like
+cd backend
+cp .env.example .env          # edit JWT_SECRET_KEY; DATABASE_URL uses the same DB_* user/db
+cd ..
 ```
 
-### 2. Backend
+Defaults: `freshroute` / `freshrouteadmin` / `freshroute@2120`.
+
+### 2. Full stack up
+
+```bash
+docker compose up -d          # postgres :5432, backend :8000, frontend :3000
+```
+
+- On a **fresh** postgres volume, `db/init/provision.sh` auto-creates the `.env`
+  DB role and makes it owner of the database.
+- Backend source (`backend/`) and frontend source (repo root, `src/`) are
+  bind-mounted with live reload — edit files and the running app picks them up.
+- Model artifacts are mounted read-only from
+  `post_harvest_data_engine/data/processed/food/`.
+
+### 3. Database tasks (containerized one-shots)
+
+```bash
+docker compose run --rm db-migrate      # alembic upgrade head (as the app user)
+./db/bootstrap.sh                       # one-time, for EXISTING volumes that predate provision.sh
+                                        # (== docker compose run --rm db-bootstrap)
+```
+
+Both read `DB_NAME` / `DB_USER` / `DB_PASS` from your `.env` — nothing is
+hardcoded. Idempotent; safe to re-run.
+
+### 4. Tests (optional, on the host)
 
 ```bash
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # Edit JWT_SECRET_KEY and DATABASE_URL
-alembic upgrade head           # Apply migrations
-uvicorn app.main:app --reload  # http://localhost:8000
-```
-
-### 3. Frontend
-
-```bash
-npm install
-npm run dev                    # http://localhost:3000
-```
-
-### 4. Tests
-
-```bash
-cd backend
 python -m pytest tests/ -v
 ```
 
@@ -197,10 +218,22 @@ Trained model artifacts are loaded at backend startup for real-time inference vi
 
 ## Environment Variables
 
+### Database / Docker (`./.env`)
+
+```env
+DB_NAME=freshroute
+DB_USER=freshrouteadmin
+DB_PASS=freshroute@2120
+```
+
+Copied from `.env.example` and edited to your liking — gitignored, so these stay
+private. Consumed by `docker-compose.yml` (postgres provisioning + one-shot
+tasks), `db/init/provision.sh`, and `backend/entrypoint.sh`.
+
 ### Backend (`backend/.env`)
 
 ```env
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/freshroute
+DATABASE_URL=postgresql+asyncpg://freshrouteadmin:freshroute%402120@localhost:5432/freshroute
 JWT_SECRET_KEY=<random-secret>
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=15
@@ -208,7 +241,13 @@ REFRESH_TOKEN_EXPIRE_DAYS=7
 FRONTEND_ORIGIN=http://localhost:3000
 ```
 
-### Frontend (`src/.env.local`)
+`DATABASE_URL` user/password/db must match the `DB_USER`/`DB_PASS`/`DB_NAME`
+values above (a literal `@` in the password is URL-encoded as `%40`), and must
+not be the `postgres` superuser. In containers the URL is derived from `DB_*`
+(host `postgres`) by `backend/entrypoint.sh`, so keep the two in sync only if
+you also run the backend on the host.
+
+### Frontend (root `.env` / `src/.env.local`)
 
 ```env
 NEXT_PUBLIC_APP_NAME=Fresh Supplies
