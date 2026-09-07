@@ -42,6 +42,7 @@ class User:
     cooperative_id: UUID | None
     phone_verified: bool
     profile_completed: bool
+    is_active: bool = True
 
 
 class ShipmentStatus(str, Enum):
