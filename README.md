@@ -40,58 +40,176 @@ fresh-supplies/
 
 ## Getting Started
 
-Everything runs in Docker: Postgres, the FastAPI backend, and the Next.js
-frontend, plus containerized one-shot tasks for DB provisioning and migrations.
+You can run Fresh Supplies in either of two ways:
+1. **Option A: Full Docker Mode** — Runs PostgreSQL, FastAPI backend, and Next.js frontend in Docker containers.
+2. **Option B: Local Development Mode** — Runs PostgreSQL in Docker, while running the FastAPI backend and Next.js frontend natively on your host machine for rapid iterative development.
+
+---
 
 ### Prerequisites
 
-- Docker + Docker Compose (v2) — nothing else is required at runtime
-- Python 3.12+ / Node 22+ only if you want to run backend/frontend on the host
-  instead of in containers
+- **Docker Desktop** (running with Docker Compose v2)
+- For local host execution:
+  - **Python 3.10+ / 3.12+**
+  - **Node.js 20+ / 22+** and **npm**
 
-### 1. Environment (private, gitignored)
+---
 
-Two private env files. Secrets never leave these:
+### Option A: Full Docker Mode (All Containers)
 
+#### 1. Setup Environment Files
 ```bash
-cp .env.example .env          # edit DB_NAME, DB_USER, DB_PASS and NEXT_PUBLIC_* as you like
+# In project root:
+cp .env.example .env
+
+# In backend directory:
 cd backend
-cp .env.example .env          # edit JWT_SECRET_KEY; DATABASE_URL uses the same DB_* user/db
+cp .env.example .env
 cd ..
 ```
+*Defaults in `.env.example` configure `freshroute` database credentials and dev settings.*
 
-Defaults: `freshroute` / `freshrouteadmin` / `freshroute@2120`.
-
-### 2. Full stack up
-
+#### 2. Start All Services
 ```bash
-docker compose up -d          # postgres :5432, backend :8000, frontend :3000
+docker compose up -d
+```
+This spins up:
+- **PostgreSQL 16**: Port `5432`
+- **FastAPI Backend**: Port `8000` (live reload enabled)
+- **Next.js Frontend**: Port `3000` (live reload enabled)
+
+#### 3. Run Database Migrations
+On first boot, apply the database schema migrations via the one-shot container:
+```bash
+docker compose run --rm db-migrate
 ```
 
-- On a **fresh** postgres volume, `db/init/provision.sh` auto-creates the `.env`
-  DB role and makes it owner of the database.
-- Backend source (`backend/`) and frontend source (repo root, `src/`) are
-  bind-mounted with live reload — edit files and the running app picks them up.
-- Model artifacts are mounted read-only from
-  `post_harvest_data_engine/data/processed/food/`.
+---
 
-### 3. Database tasks (containerized one-shots)
+### Option B: Local Development Mode (Recommended for Host Debugging)
 
-```bash
-docker compose run --rm db-migrate      # alembic upgrade head (as the app user)
-./db/bootstrap.sh                       # one-time, for EXISTING volumes that predate provision.sh
-                                        # (== docker compose run --rm db-bootstrap)
+In this mode, PostgreSQL runs in Docker, while the backend and frontend run in your terminals.
+
+#### Step 1: Start PostgreSQL via Docker
+Ensure Docker Desktop is open and running, then execute from the project root:
+```powershell
+# Start only the database container in background
+docker compose up -d postgres
 ```
 
-Both read `DB_NAME` / `DB_USER` / `DB_PASS` from your `.env` — nothing is
-hardcoded. Idempotent; safe to re-run.
+#### Step 2: Set Up and Run the Backend (FastAPI)
 
-### 4. Tests (optional, on the host)
+1. Navigate to `backend` and create your `.env` file:
+   ```powershell
+   cd backend
+   cp .env.example .env
+   ```
+   *Ensure `JWT_SECRET_KEY` in `backend/.env` is populated with a random secret string.*
 
+2. Create and activate a Python virtual environment:
+   - **Windows (PowerShell):**
+     ```powershell
+     python -m venv .venv
+     .\.venv\Scripts\Activate.ps1
+     ```
+   - **Linux / macOS (Bash):**
+     ```bash
+     python -m venv .venv
+     source .venv/bin/activate
+     ```
+
+3. Install backend dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+4. Run database migrations:
+   ```bash
+   alembic upgrade head
+   ```
+
+5. Start the FastAPI server:
+   ```bash
+   uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+   ```
+
+#### Step 3: Set Up and Run the Frontend (Next.js)
+
+1. In a new terminal, navigate to the project root:
+   ```bash
+   # If you have a root .env.example:
+   cp .env.example .env.local
+   ```
+
+2. Install frontend dependencies:
+   ```bash
+   npm install
+   ```
+
+3. Start the Next.js development server:
+   ```bash
+   npm run dev
+   ```
+
+---
+
+### Verification & URLs
+
+Once running, access the following endpoints:
+
+| Service | URL | Description |
+|---|---|---|
+| **Web Frontend** | [http://localhost:3000](http://localhost:3000) | Next.js App (Landing, Register, Login, Dashboard) |
+| **API Health Check** | [http://localhost:8000/health](http://localhost:8000/health) | Verifies FastAPI is alive (`{"status":"ok"}`) |
+| **Swagger Interactive Docs** | [http://localhost:8000/docs](http://localhost:8000/docs) | Interactive API documentation |
+| **ReDoc API Spec** | [http://localhost:8000/redoc](http://localhost:8000/redoc) | Alternative API documentation |
+
+---
+
+### Troubleshooting & Common Pitfalls
+
+#### 1. "Failed to connect to the docker API"
+- **Cause**: Docker Desktop is not running or still starting up.
+- **Solution**: Open Docker Desktop from the Start Menu / Applications and wait until the Docker whale icon in the taskbar shows "Engine running".
+
+#### 2. Port 8000 or 5432 Already in Use
+- **Cause**: An old container from another project (or an orphaned process) is bound to the port.
+- **Solution**:
+  - Check running containers: `docker ps`
+  - Stop any conflicting container: `docker stop <container_name_or_id>`
+  - If a local service is using port 5432 or 8000, stop it before starting Fresh Supplies.
+
+#### 3. Frontend Displays "Network Error" / "CORS policy" on Register/Login
+- **Cause**: The FastAPI backend threw an unhandled exception (typically `500 Internal Server Error` because PostgreSQL is offline or refusing connections on port 5432).
+- **Solution**:
+  - Verify PostgreSQL is running: `docker compose ps` (should show `freshroute-postgres` as healthy).
+  - Verify database migrations have run: `alembic upgrade head`.
+  - Verify `DATABASE_URL` in `backend/.env` matches your postgres credentials.
+
+#### 4. Windows PowerShell Script Execution Policy (`Activate.ps1 cannot be loaded`)
+- **Cause**: PowerShell restricts executing scripts by default.
+- **Solution**: Run this in your current PowerShell session:
+  ```powershell
+  Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+  ```
+  Then re-run `.\.venv\Scripts\Activate.ps1`.
+
+#### 5. Resetting Database Volume
+To start with a completely fresh, empty PostgreSQL database:
+```bash
+docker compose down -v
+docker compose up -d postgres
+cd backend
+alembic upgrade head
+```
+
+---
+
+### Running Tests
+
+To run backend tests on the host:
 ```bash
 cd backend
-python -m venv .venv && source .venv/bin/activate
-pip install -r requirements.txt
 python -m pytest tests/ -v
 ```
 

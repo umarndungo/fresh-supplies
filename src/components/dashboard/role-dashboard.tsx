@@ -7,6 +7,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
+import { useShipments } from "@/hooks/use-shipments";
+import { useProduce } from "@/hooks/use-produce";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { ShipmentStatusBadge } from "@/components/shipments/shipment-status-badge";
+import { RiskTierBadge } from "@/components/shipments/risk-tier-badge";
 
 const ROLE_CONFIG: Record<UserRole, {
   title: string;
@@ -171,6 +176,62 @@ export function RoleDashboard() {
   const role = user?.role ?? "ADMINISTRATOR";
   const config = ROLE_CONFIG[role];
 
+  const { data: shipments, isLoading: isShipmentsLoading } = useShipments();
+  const { data: produce, isLoading: isProduceLoading } = useProduce();
+
+  const totalShipments = shipments?.length ?? 0;
+  const inTransitCount = shipments?.filter((s) => s.status === "IN_TRANSIT").length ?? 0;
+  const scheduledCount = shipments?.filter((s) => s.status === "SCHEDULED").length ?? 0;
+  const activeShipments = inTransitCount + scheduledCount;
+  const deliveredCount = shipments?.filter((s) => s.status === "DELIVERED").length ?? 0;
+  const atRiskCount =
+    shipments?.filter(
+      (s) =>
+        s.riskTier === "At-Risk" ||
+        s.riskTier === "Critical" ||
+        s.riskTier === ("AT_RISK" as any) ||
+        s.riskTier === ("CRITICAL" as any)
+    ).length ?? 0;
+
+  const totalProduceKg = produce?.reduce((acc, p) => acc + Number(p.quantityKg), 0) ?? 0;
+  const totalInventoryValue = produce?.reduce((acc, p) => acc + Number(p.quantityKg) * Number(p.unitPrice), 0) ?? 0;
+
+  const avgSpoilage =
+    totalShipments > 0
+      ? (shipments!.reduce((acc, s) => acc + (s.spoilageProbability ?? 0), 0) / totalShipments) * 100
+      : 0;
+
+  const dynamicStats = (() => {
+    switch (role) {
+      case "LOGISTICS_MANAGER":
+        return [
+          { label: "In Transit", value: isShipmentsLoading ? "..." : inTransitCount, subtext: `${scheduledCount} scheduled`, icon: Truck, color: "text-blue-600" },
+          { label: "At-Risk Corridors", value: isShipmentsLoading ? "..." : atRiskCount, subtext: "Immediate action required", icon: AlertTriangle, color: "text-amber-600" },
+          { label: "Avg Spoilage Rate", value: isShipmentsLoading ? "..." : `${avgSpoilage.toFixed(1)}%`, subtext: "Target threshold: <15%", icon: TrendingUp, color: "text-rose-600" },
+        ];
+      case "FARMER_COOPERATIVE":
+        return [
+          { label: "Available Stock", value: isProduceLoading ? "..." : `${(totalProduceKg / 1000).toFixed(1)}t`, subtext: `${produce?.length ?? 0} batches registered`, icon: Package, color: "text-emerald-600" },
+          { label: "Active Deliveries", value: isShipmentsLoading ? "..." : activeShipments, subtext: `${deliveredCount} delivered`, icon: Truck, color: "text-blue-600" },
+          { label: "Estimated Value", value: isProduceLoading ? "..." : `KES ${(totalInventoryValue / 1000).toFixed(0)}k`, subtext: "Calibrated wholesale price", icon: DollarSign, color: "text-teal-600" },
+        ];
+      case "MARKET_ANALYST":
+        return [
+          { label: "Wholesale Markets", value: "10 Hubs", subtext: "Monitored regional markets", icon: MapPin, color: "text-blue-600" },
+          { label: "Tracked Batches", value: isProduceLoading ? "..." : `${produce?.length ?? 0} Lots`, subtext: `${totalShipments} total shipments`, icon: BarChart2, color: "text-indigo-600" },
+          { label: "Projected Retained", value: isShipmentsLoading ? "..." : `${(100 - avgSpoilage).toFixed(1)}%`, subtext: "Revenue retention estimate", icon: TrendingUp, color: "text-emerald-600" },
+        ];
+      default: // ADMINISTRATOR
+        return [
+          { label: "Active Shipments", value: isShipmentsLoading ? "..." : activeShipments, subtext: `${totalShipments} total recorded`, icon: Truck, color: "text-blue-600" },
+          { label: "Produce Inventory", value: isProduceLoading ? "..." : `${(totalProduceKg / 1000).toFixed(1)}t`, subtext: `${produce?.length ?? 0} batches in stock`, icon: Warehouse, color: "text-emerald-600" },
+          { label: "System Health", value: "OK (99.8%)", subtext: "ML models & API operational", icon: TrendingUp, color: "text-teal-600" },
+        ];
+    }
+  })();
+
+  const recentShipments = (shipments ?? []).slice(0, 5);
+
   return (
     <div className="space-y-6">
       <div>
@@ -190,20 +251,77 @@ export function RoleDashboard() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        {config.quickStats.map((stat, i) => (
+        {dynamicStats.map((stat, i) => (
           <Card key={i}>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="flex items-center justify-between">
-                <span className={`text-2xl font-bold ${stat.color}`}>{stat.value}</span>
+                <div>
+                  <span className={`text-2xl font-bold ${stat.color}`}>{stat.value}</span>
+                  {stat.subtext && <p className="text-xs text-muted-foreground mt-0.5">{stat.subtext}</p>}
+                </div>
                 <stat.icon className="size-6 text-muted-foreground" />
               </div>
             </CardContent>
           </Card>
         ))}
       </div>
+
+      {recentShipments.length > 0 && (
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between pb-3">
+            <div>
+              <CardTitle className="text-base font-semibold">Active Operational Shipments</CardTitle>
+              <p className="text-xs text-muted-foreground">Recent movements tracked across regional cold-chain corridors</p>
+            </div>
+            <Link href="/dashboard/shipments">
+              <Button variant="outline" size="sm">
+                View All Shipments
+              </Button>
+            </Link>
+          </CardHeader>
+          <CardContent className="p-0">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Origin Corridor</TableHead>
+                    <TableHead>Destination Market</TableHead>
+                    <TableHead>Produce</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Risk Tier</TableHead>
+                    <TableHead className="text-right">Volume</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentShipments.map((s) => (
+                    <TableRow key={s.id}>
+                      <TableCell className="font-medium text-foreground">{s.origin}</TableCell>
+                      <TableCell>{s.destination}</TableCell>
+                      <TableCell>{s.produceType}</TableCell>
+                      <TableCell>
+                        <ShipmentStatusBadge status={s.status} />
+                      </TableCell>
+                      <TableCell>
+                        {s.riskTier ? (
+                          <RiskTierBadge tier={s.riskTier} showProbability probability={s.spoilageProbability} />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {s.quantityKg ? `${s.quantityKg.toLocaleString()} kg` : "—"}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="space-y-6">
         {config.sections.map((section) => (
