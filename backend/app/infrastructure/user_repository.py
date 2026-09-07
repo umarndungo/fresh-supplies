@@ -23,6 +23,7 @@ def _to_entity(model: UserModel) -> User:
         cooperative_id=model.cooperative_id,
         phone_verified=model.phone_verified,
         profile_completed=model.profile_completed,
+        is_active=model.is_active,
     )
 
 
@@ -104,3 +105,44 @@ class SqlAlchemyUserRepository(UserRepository):
         if profile_completed is not None:
             model.profile_completed = profile_completed
         await self._session.commit()
+
+    async def list_all(self) -> list[User]:
+        result = await self._session.execute(
+            select(UserModel).order_by(UserModel.created_at.desc())
+        )
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def update_admin_user(
+        self,
+        user_id: UUID,
+        *,
+        full_name: str | None = None,
+        organization_name: str | None = None,
+        role: UserRole | None = None,
+        is_active: bool | None = None,
+        hashed_password: str | None = None,
+    ) -> User | None:
+        model = await self._session.get(UserModel, user_id)
+        if model is None:
+            return None
+        if full_name is not None:
+            model.full_name = full_name
+        if organization_name is not None:
+            model.organization_name = organization_name
+        if role is not None:
+            model.role = role
+        if is_active is not None:
+            model.is_active = is_active
+        if hashed_password is not None:
+            model.hashed_password = hashed_password
+        await self._session.commit()
+        await self._session.refresh(model)
+        return _to_entity(model)
+
+    async def delete(self, user_id: UUID) -> bool:
+        model = await self._session.get(UserModel, user_id)
+        if model is None:
+            return False
+        await self._session.delete(model)
+        await self._session.commit()
+        return True
