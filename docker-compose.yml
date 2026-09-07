@@ -1,22 +1,114 @@
-version: "3.8"
-
 services:
+  # PostgreSQL 16. DB name / app role come from DB_NAME / DB_USER / DB_PASS in
+  # the private root .env (see .env.example). Fresh volumes auto-provision the
+  # role + ownership via ./db/init (POSTGRES_APP_*); existing volumes use
+  # `docker compose run --rm db-bootstrap` (or ./db/bootstrap.sh).
   postgres:
     image: postgres:16-alpine
     container_name: freshroute-postgres
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: freshroute
+      POSTGRES_DB: ${DB_NAME:-freshroute}
+      POSTGRES_APP_USER: ${DB_USER:-freshrouteadmin}
+      POSTGRES_APP_PASSWORD: ${DB_PASS:-freshroute@2120}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
 
+  # FastAPI backend (dev: bind-mounted source + uvicorn --reload).
+  # DATABASE_URL is derived from DB_* by backend/entrypoint.sh (host=postgres);
+  # backend/.env (env_file) supplies JWT and other app settings.
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ./backend/.env
+    environment:
+      DB_HOST: postgres
+      DB_NAME: ${DB_NAME:-freshroute}
+      DB_USER: ${DB_USER:-freshrouteadmin}
+      DB_PASS: ${DB_PASS:-freshroute@2120}
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./post_harvest_data_engine:/post_harvest_data_engine:ro
+      - ./backend/media:/app/media
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0 if urllib.request.urlopen('http://127.0.0.1:8000/health').status==200 else 1)\""]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
+
+  # Next.js frontend (dev: repo root bind-mounted, node_modules/.next on named
+  # volumes, `next dev` with live reload on 0.0.0.0).
+  frontend:
+    build:
+      context: .
+    depends_on:
+      - backend
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Fresh Supplies}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_DEV_AUTH_BYPASS: ${NEXT_PUBLIC_DEV_AUTH_BYPASS:-false}
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - frontend_node_modules:/app/node_modules
+      - frontend_next:/app/.next
+
+  # One-shot: provision role/db/grants/ownership on EXISTING postgres volumes.
+  #   docker compose run --rm db-bootstrap    (or ./db/bootstrap.sh)
+  db-bootstrap:
+    image: postgres:16-alpine
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGPASSWORD: postgres
+      DB_NAME: ${DB_NAME:-freshroute}
+      DB_USER: ${DB_USER:-freshrouteadmin}
+      DB_PASS: ${DB_PASS:-freshroute@2120}
+    volumes:
+      - ./db/init/provision.sh:/provision.sh:ro
+    entrypoint: ["/bin/sh", "/provision.sh"]
+
+  # One-shot: run Alembic migrations as the app user (`alembic upgrade head`).
+  #   docker compose run --rm db-migrate
+  db-migrate:
+    build: ./backend
+    profiles: ["tools"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_HOST: postgres
+      DB_NAME: ${DB_NAME:-freshroute}
+      DB_USER: ${DB_USER:-freshrouteadmin}
+      DB_PASS: ${DB_PASS:-freshroute@2120}
+    working_dir: /app
+    command: ["alembic", "upgrade", "head"]
+    volumes:
+      - ./backend:/app
+
 volumes:
   postgres_data:
+  frontend_node_modules:
+  frontend_next:
