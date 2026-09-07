@@ -5,21 +5,26 @@ system context to vibecode accurately without inventing conventions that already
 exist in the codebase or conflicting with the mobile/data-engine contracts other
 developers are building against.
 
-### Local PostgreSQL bootstrap
+### Local PostgreSQL bootstrap + running the whole stack in Docker
 
-Choose your own DB name / user / password — they live as `DB_NAME` / `DB_USER` /
-`DB_PASS` in the private root `.env`:
+The full stack runs in Docker: `docker compose up -d` starts postgres, backend
+(:8000, uvicorn --reload) and frontend (:3000, next dev), with source
+bind-mounted for live reload. DB provisioning is containerized too — one shared
+script (`db/init/provision.sh`):
 
 ```bash
-cp .env.example .env          # then edit DB_NAME, DB_USER, DB_PASS to whatever you like
-docker compose up -d          # fresh volume auto-provisions role + ownership via db/init/
-./db/bootstrap.sh             # once, for volumes that predate db/init/ (idempotent)
+cp .env.example .env                  # then edit DB_NAME, DB_USER, DB_PASS to whatever you like
+docker compose up -d                  # fresh volume auto-provisions role + ownership via db/init/
+./db/bootstrap.sh                     # one-shot for EXISTING volumes (== docker compose run --rm db-bootstrap)
+docker compose run --rm db-migrate    # alembic upgrade head, runs as the app user
 ```
 
-`db/bootstrap.sh` reads its variables from your `.env` (falls back to
-`backend/.env`'s `DATABASE_URL`, then built-in defaults) and warns if the two
-drift apart. `backend/.env`'s `DATABASE_URL` must reference the same user/db you
-chose (password `@` → `%40`), never the `postgres` superuser.
+Everything above reads `DB_NAME` / `DB_USER` / `DB_PASS` from your private
+`.env`; the backend container derives its own `DATABASE_URL` (host `postgres`)
+from those same vars in `backend/entrypoint.sh`. Nothing is hardcoded and the
+`postgres` superuser is never used by the app. `backend/.env`'s `DATABASE_URL`
+only needs to match if you also run the backend on the host (password `@` →
+`%40`).
 
 ---
 
@@ -179,9 +184,9 @@ Existing conventions to mirror, not reinvent:
   service, not reimplement model loading.
 - Alembic gotchas: escape % as %% in URL interpolation; URL-encode @ as %40 in any
   DATABASE_URL with a literal @ in the password. The DATABASE_URL app role is
-  provisioned from the root .env's DB_NAME/DB_USER/DB_PASS by db/init on fresh
-  volumes and ./db/bootstrap.sh on existing ones — never run Alembic as the
-  postgres superuser.
+  provisioned from the root .env's DB_NAME/DB_USER/DB_PASS by db/init/provision.sh
+  on fresh volumes (db-bootstrap one-shot for existing ones) — run migrations via
+  `docker compose run --rm db-migrate`, never as the postgres superuser.
 
 Domain facts affecting implementation:
 - A shipment is "spoiled" when predicted loss > 15%.
@@ -220,6 +225,12 @@ endpoint, and reconciling SMS provider integration (see §7).
 ## 6. What's been built — file inventory
 
 ### New files
+- `../docker-compose.yml` — full stack (postgres/backend/frontend) + one-shot
+  `db-bootstrap` / `db-migrate` services (security: `profiles: ["tools"]` so they
+  never start on `up`)
+- `backend/Dockerfile` (Python 3.12 dev image) and root `Dockerfile` (Next.js dev
+  image); `backend/entrypoint.sh` derives DATABASE_URL from DB_* ; `db/init/provision.sh`
+  is the single provisioning source
 - `app/api/routes/mobile_auth.py` — OTP request/verify, mobile refresh, complete-profile
 - `app/api/routes/mobile_shipments.py` — batch sync, photo upload, sync-status, recommendation
 - `app/api/routes/mobile_driver.py` — driver manifest, stop confirmation
