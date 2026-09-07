@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Loader2, Plus, X, ChevronDown, ChevronUp, Edit2 } from "lucide-react";
+import { Loader2, Plus, X, Edit2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createProduceSchema, type CreateProduceFormValues } from "@/lib/validators/produce.schema";
 import { useCreateProduce, useUpdateProduce } from "@/hooks/use-produce";
 import type { Produce, UpdateProducePayload } from "@/types/produce.types";
@@ -78,35 +78,40 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
       <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? "Edit produce" : "Add produce"}</DialogTitle>
+          <DialogDescription>
+            Record a produce lot to track inventory and freshness across the supply chain.
+          </DialogDescription>
         </DialogHeader>
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Tomatoes" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="variety"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Variety</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Roma VF" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Tomatoes" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="variety"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Variety</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Roma VF" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="commodityClass"
@@ -124,62 +129,67 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
                       <SelectItem value="STAPLE">Staple</SelectItem>
                     </SelectContent>
                   </Select>
+                  <FormDescription>Perishable lots get priority tracking for spoilage risk.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
             />
-            <FormField
-              control={form.control}
-              name="quantityKg"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quantity (kg)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.1" min="0" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="unitPrice"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Unit Price (KES/kg)</FormLabel>
-                  <FormControl>
-                    <Input type="number" step="0.1" min="0" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="qualityGrade"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Quality Grade</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Grade 1" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            <FormField
-              control={form.control}
-              name="harvestDate"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Harvest Date</FormLabel>
-                  <FormControl>
-                    <Input type="date" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="quantityKg"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quantity (kg)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.1" min="0" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="unitPrice"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Unit Price (KES/kg)</FormLabel>
+                    <FormControl>
+                      <Input type="number" step="0.1" min="0" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="qualityGrade"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Quality Grade</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Grade 1" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="harvestDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Harvest Date</FormLabel>
+                    <FormControl>
+                      <Input type="date" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <FormField
               control={form.control}
               name="storageLocation"
@@ -189,6 +199,7 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
                   <FormControl>
                     <Input placeholder="Warehouse A, Nairobi" {...field} />
                   </FormControl>
+                  <FormDescription>Where the lot is stored while waiting to be shipped.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -250,35 +261,40 @@ export function EditProduceTrigger({ produce, onSuccess }: { produce: Produce; o
         <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Edit produce</DialogTitle>
+            <DialogDescription>
+              Update the details for this produce lot.
+            </DialogDescription>
           </DialogHeader>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
-              <FormField
-                control={form.control}
-                name="name"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Name</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Tomatoes" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="variety"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Variety</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Roma VF" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="name"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Name</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Tomatoes" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="variety"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Variety</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Roma VF" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="commodityClass"
@@ -296,62 +312,67 @@ export function EditProduceTrigger({ produce, onSuccess }: { produce: Produce; o
                         <SelectItem value="STAPLE">Staple</SelectItem>
                       </SelectContent>
                     </Select>
+                    <FormDescription>Perishable lots get priority tracking for spoilage risk.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-              <FormField
-                control={form.control}
-                name="quantityKg"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quantity (kg)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="unitPrice"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Unit Price (KES/kg)</FormLabel>
-                    <FormControl>
-                      <Input type="number" step="0.1" min="0" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="qualityGrade"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Quality Grade</FormLabel>
-                    <FormControl>
-                      <Input placeholder="Grade 1" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <FormField
-                control={form.control}
-                name="harvestDate"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Harvest Date</FormLabel>
-                    <FormControl>
-                      <Input type="date" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="quantityKg"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quantity (kg)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.1" min="0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="unitPrice"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Unit Price (KES/kg)</FormLabel>
+                      <FormControl>
+                        <Input type="number" step="0.1" min="0" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <FormField
+                  control={form.control}
+                  name="qualityGrade"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Quality Grade</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Grade 1" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="harvestDate"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Harvest Date</FormLabel>
+                      <FormControl>
+                        <Input type="date" {...field} />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
               <FormField
                 control={form.control}
                 name="storageLocation"
@@ -361,6 +382,7 @@ export function EditProduceTrigger({ produce, onSuccess }: { produce: Produce; o
                     <FormControl>
                       <Input placeholder="Warehouse A, Nairobi" {...field} />
                     </FormControl>
+                    <FormDescription>Where the lot is stored while waiting to be shipped.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
