@@ -162,6 +162,16 @@ split):
    as an explicit, logged step before restarting the app container**, never silently
    inside app startup, so a bad migration is visible in the deploy log, not buried.
 
+**Database provisioning (staging/prod)**
+- Provision the application database role **before** the first `alembic upgrade
+  head`, and run migrations as the app user rather than the superuser. The role
+  name, password, and database are `DB_USER` / `DB_PASS` / `DB_NAME` in the
+  environment's private `.env` file — on a fresh Postgres volume,
+  `docker compose up` provisions them automatically via `db/init/`; on an
+  existing volume run `./db/bootstrap.sh` once (same as local setup). The
+  environment's `backend/.env` `DATABASE_URL` must reference that same role
+  (remember the `%40` encoding gotcha).
+
 **Data engine (`post_harvest_data_engine/`)**
 1. On PR: run the full pytest suite — **explicitly assert the model-regression AUC
    ceiling test passes** (this is the guard against the label-circularity bug
@@ -343,7 +353,9 @@ is local disk, no resize pipeline yet.
 
 1. Provision the Oracle VM at the correct (reduced) size, set up Caddy + domain +
    TLS, and get a bare `docker compose up` backend+Postgres stack running manually —
-   prove the target environment works before automating deploys to it.
+   on a fresh volume the app role is provisioned automatically via `db/init/`; for
+   an existing volume run `./db/bootstrap.sh` once, then `alembic upgrade head`.
+   Prove the target environment works before automating deploys to it.
 2. Backend CI: lint/test on PR, build+push image on merge, manual first deploy to
    confirm the pipeline before automating the deploy step itself.
 3. Alembic migration step wired explicitly into the deploy pipeline (§7).

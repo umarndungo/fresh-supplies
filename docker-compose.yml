@@ -7,11 +7,14 @@ services:
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: freshroute
+      POSTGRES_DB: ${DB_NAME:-freshroute}
+      POSTGRES_APP_USER: ${DB_USER:-freshrouteadmin}
+      POSTGRES_APP_PASSWORD: ${DB_PASS:-freshroute@2120}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s

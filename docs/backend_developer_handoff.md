@@ -5,6 +5,22 @@ system context to vibecode accurately without inventing conventions that already
 exist in the codebase or conflicting with the mobile/data-engine contracts other
 developers are building against.
 
+### Local PostgreSQL bootstrap
+
+Choose your own DB name / user / password — they live as `DB_NAME` / `DB_USER` /
+`DB_PASS` in the private root `.env`:
+
+```bash
+cp .env.example .env          # then edit DB_NAME, DB_USER, DB_PASS to whatever you like
+docker compose up -d          # fresh volume auto-provisions role + ownership via db/init/
+./db/bootstrap.sh             # once, for volumes that predate db/init/ (idempotent)
+```
+
+`db/bootstrap.sh` reads its variables from your `.env` (falls back to
+`backend/.env`'s `DATABASE_URL`, then built-in defaults) and warns if the two
+drift apart. `backend/.env`'s `DATABASE_URL` must reference the same user/db you
+chose (password `@` → `%40`), never the `postgres` superuser.
+
 ---
 
 ## 1. Project context (read first)
@@ -162,7 +178,10 @@ Existing conventions to mirror, not reinvent:
   cached model load — the reconciliation job's spoilage prediction should reuse this
   service, not reimplement model loading.
 - Alembic gotchas: escape % as %% in URL interpolation; URL-encode @ as %40 in any
-  DATABASE_URL with a literal @ in the password.
+  DATABASE_URL with a literal @ in the password. The DATABASE_URL app role is
+  provisioned from the root .env's DB_NAME/DB_USER/DB_PASS by db/init on fresh
+  volumes and ./db/bootstrap.sh on existing ones — never run Alembic as the
+  postgres superuser.
 
 Domain facts affecting implementation:
 - A shipment is "spoiled" when predicted loss > 15%.
