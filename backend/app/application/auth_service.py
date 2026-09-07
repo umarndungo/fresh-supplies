@@ -41,6 +41,8 @@ class AuthService:
         user = await self._users.get_by_email(email)
         if not user or not verify_password(password, user.hashed_password):
             raise UnauthorizedError("Invalid email or password.")
+        if not user.is_active:
+            raise UnauthorizedError("Your account has been deactivated.")
         return self._issue_tokens(user)
 
     async def refresh(self, refresh_token: str) -> tuple[User, str, int, str]:
@@ -63,6 +65,8 @@ class AuthService:
         user = await self._users.get_by_id(user_id)
         if not user:
             raise UnauthorizedError("User no longer exists.")
+        if not user.is_active:
+            raise UnauthorizedError("Your account has been deactivated.")
         return user
 
     def _issue_tokens(self, user: User) -> tuple[User, str, int, str]:
