@@ -18,6 +18,12 @@ export const API_ENDPOINTS = {
     predictSpoilage: "/ml/predict-spoilage",
     recommendMarket: "/ml/recommend-market",
   },
+  admin: {
+    users: {
+      base: "/admin/users",
+      byId: (id: string) => `/admin/users/${id}`,
+    },
+  },
   mobile: {
     auth: {
       otpRequest: "/mobile/auth/otp/request",
