@@ -8,6 +8,16 @@ const __dirname = dirname(__filename);
 // and @typescript-eslint plugin resolution issues
 const eslintConfig = [
   {
+    ignores: [
+      ".next/**",
+      "node_modules/**",
+      "backend/**",
+      "post_harvest_data_engine/**",
+      "dist/**",
+      "build/**",
+    ],
+  },
+  {
     languageOptions: {
       ecmaVersion: 2024,
       sourceType: "module",
