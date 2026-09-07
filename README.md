@@ -1,4 +1,4 @@
-# FreshRoute AI
+# Fresh Supplies
 
 Reduce post-harvest losses in Sub-Saharan Africa through data-driven spoilage prediction, risk segmentation, and spoilage-aware route and market optimization.
 
@@ -211,7 +211,7 @@ FRONTEND_ORIGIN=http://localhost:3000
 ### Frontend (`src/.env.local`)
 
 ```env
-NEXT_PUBLIC_APP_NAME=FreshRoute AI
+NEXT_PUBLIC_APP_NAME=Fresh Supplies
 NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
 ```
 

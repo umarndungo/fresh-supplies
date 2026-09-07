@@ -23,12 +23,12 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
             Move fresh produce from farm to market before the freshness window closes.
           </h1>
           <p className="max-w-sm text-sm text-primary-foreground/80">
-            FreshRoute AI gives cooperatives, logistics teams, and market analysts one shared view of harvest,
+            Fresh Supplies gives cooperatives, logistics teams, and market analysts one shared view of harvest,
             transport, and demand.
           </p>
         </div>
         <p className="relative z-10 text-xs text-primary-foreground/60">
-          © {new Date().getFullYear()} FreshRoute AI. All rights reserved.
+          © {new Date().getFullYear()} Fresh Supplies. All rights reserved.
         </p>
       </div>
       <div className="flex flex-col">

@@ -1,8 +1,8 @@
-import { LayoutDashboard, Truck, Warehouse, LineChart, Route, FileBarChart, Users } from "lucide-react";
+import { LayoutDashboard, Truck, Warehouse, BarChart2, Route, FileBarChart, Users, LineChart, MapPin } from "lucide-react";
 import type { NavSection } from "@/types/nav.types";
 
 /**
- * Full intended information architecture for FreshRoute AI. Shipments is
+ * Full intended information architecture for Fresh Supplies. Shipments is
  * implemented; the remaining routes are scaffolded so the shell is
  * realistic, and resolve to the branded 404 page until built.
  */
@@ -19,9 +19,16 @@ export const NAV_SECTIONS: NavSection[] = [
       },
       {
         title: "Produce Inventory",
-        href: "/dashboard/inventory",
+        href: "/dashboard/produce",
         icon: Warehouse,
-        roles: ["ADMINISTRATOR", "FARMER_COOPERATIVE"],
+        roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER", "FARMER_COOPERATIVE"],
+      },
+      {
+        title: "Analytics",
+        href: "/dashboard/analytics",
+        icon: BarChart2,
+        roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER", "MARKET_ANALYST"],
+        description: "Spoilage trends, revenue, risk distribution",
       },
       {
         title: "Market Insights",
@@ -35,7 +42,12 @@ export const NAV_SECTIONS: NavSection[] = [
         icon: Route,
         roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER"],
       },
-      { title: "Reports", href: "/dashboard/reports", icon: FileBarChart },
+      {
+        title: "Reports",
+        href: "/dashboard/reports",
+        icon: FileBarChart,
+        roles: ["ADMINISTRATOR", "LOGISTICS_MANAGER", "MARKET_ANALYST"],
+      },
     ],
   },
   {

@@ -32,7 +32,7 @@ const DEMO_USER: AuthUser = {
   email: "dev@freshroute.ai",
   fullName: "Development User",
   role: "ADMINISTRATOR",
-  organizationName: "FreshRoute AI Demo",
+  organizationName: "Fresh Supplies Demo",
   avatarUrl: null,
   createdAt: new Date().toISOString(),
 };
@@ -75,11 +75,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (env.NEXT_PUBLIC_DEV_AUTH_BYPASS) return;
 
-    function handleExpiry() {
+    async function handleExpiry() {
       clearAccessToken();
       setUser(null);
       setStatus("unauthenticated");
       setSessionFlag(false);
+      // Call logout endpoint to delete the httpOnly refresh token cookie
+      try {
+        await logoutRequest();
+      } catch {
+        // Ignore errors - we just want to clear the cookie
+      }
+      // Redirect to login immediately to avoid stale state
+      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+        window.location.href = `/login?redirectTo=${encodeURIComponent(window.location.pathname)}`;
+      }
     }
     window.addEventListener("freshroute:session-expired", handleExpiry);
     return () => window.removeEventListener("freshroute:session-expired", handleExpiry);
@@ -119,9 +129,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = useCallback(async () => {
     if (env.NEXT_PUBLIC_DEV_AUTH_BYPASS) {
-      setUser(DEMO_USER);
-      setStatus("authenticated");
-      setSessionFlag(true);
+      setUser(null);
+      setStatus("unauthenticated");
+      setSessionFlag(false);
       return;
     }
 

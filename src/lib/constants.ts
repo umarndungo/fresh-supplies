@@ -1,6 +1,6 @@
 import type { UserRole } from "@/types/auth.types";
 
-export const APP_NAME = "FreshRoute AI";
+export const APP_NAME = "Fresh Supplies";
 
 /** Non-sensitive flag cookie read by middleware.ts to gate routes at the edge. */
 export const SESSION_FLAG_COOKIE = "frs_session";
