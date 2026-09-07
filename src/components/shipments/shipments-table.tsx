@@ -1,6 +1,7 @@
 "use client";
 
 import { Trash2 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { ShipmentStatusBadge } from "@/components/shipments/shipment-status-badge";
@@ -11,6 +12,7 @@ import { formatDate } from "@/lib/utils";
 import type { Shipment } from "@/types/shipment.types";
 
 export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
+  const router = useRouter();
   const deleteShipment = useDeleteShipment();
 
   return (
@@ -29,7 +31,20 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
         </TableHeader>
         <TableBody>
           {shipments.map((shipment) => (
-            <TableRow key={shipment.id}>
+            <TableRow
+              key={shipment.id}
+              role="link"
+              tabIndex={0}
+              aria-label={`View ${shipment.origin} to ${shipment.destination} shipment`}
+              className="cursor-pointer"
+              onClick={() => router.push(`/dashboard/shipments/${shipment.id}`)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  router.push(`/dashboard/shipments/${shipment.id}`);
+                }
+              }}
+            >
               <TableCell className="font-medium text-foreground">{shipment.origin}</TableCell>
               <TableCell>{shipment.destination}</TableCell>
               <TableCell>{shipment.produceType}</TableCell>
@@ -47,7 +62,10 @@ export function ShipmentsTable({ shipments }: { shipments: Shipment[] }) {
                     size="icon"
                     aria-label="Delete shipment"
                     disabled={deleteShipment.isPending}
-                    onClick={() => void deleteShipment.mutateAsync(shipment.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      void deleteShipment.mutateAsync(shipment.id);
+                    }}
                   >
                     <Trash2 className="size-4 text-destructive" />
                   </Button>
