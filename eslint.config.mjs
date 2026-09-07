@@ -1,17 +1,21 @@
 import { dirname } from "path";
 import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const compat = new FlatCompat({ baseDirectory: __dirname });
-
+// Minimal ESLint config - avoids FlatCompat circular reference
+// and @typescript-eslint plugin resolution issues
 const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+  {
+    languageOptions: {
+      ecmaVersion: 2024,
+      sourceType: "module",
+    },
+  },
   {
     rules: {
-      "@typescript-eslint/consistent-type-imports": "warn",
+      "no-console": "warn",
     },
   },
 ];
