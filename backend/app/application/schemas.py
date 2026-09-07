@@ -80,9 +80,9 @@ class ShipmentOut(BaseModel):
     pressure_psi: float | None = Field(default=None, serialization_alias="pressurePsi")
     baseline_loss_pct: float | None = Field(default=None, serialization_alias="baselineLossPct")
     quantity_kg: float | None = Field(default=None, serialization_alias="quantityKg")
-    spoilage_probability: float | None = None
-    risk_tier: str | None = None
-    spoil_prediction: bool | None = None
+    spoilage_probability: float | None = Field(default=None, serialization_alias="spoilageProbability")
+    risk_tier: str | None = Field(default=None, serialization_alias="riskTier")
+    spoil_prediction: bool | None = Field(default=None, serialization_alias="spoilPrediction")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
@@ -106,6 +106,68 @@ class CreateShipmentRequest(BaseModel):
     quantity_kg: float | None = Field(default=None, alias="quantityKg")
 
     model_config = {"populate_by_name": True}
+
+
+class AdminUserOut(BaseModel):
+    id: UUID
+    email: EmailStr
+    full_name: str = Field(serialization_alias="fullName")
+    role: UserRole
+    organization_name: str | None = Field(serialization_alias="organizationName")
+    avatar_url: str | None = Field(serialization_alias="avatarUrl")
+    phone_number: str | None = Field(serialization_alias="phoneNumber")
+    account_type: str | None = Field(serialization_alias="accountType")
+    cooperative_id: UUID | None = Field(serialization_alias="cooperativeId")
+    phone_verified: bool = Field(serialization_alias="phoneVerified")
+    profile_completed: bool = Field(serialization_alias="profileCompleted")
+    is_active: bool = Field(serialization_alias="isActive")
+    created_at: datetime = Field(serialization_alias="createdAt")
+
+    model_config = {"populate_by_name": True, "from_attributes": True}
+
+
+class AdminCreateUserRequest(BaseModel):
+    full_name: str = Field(alias="fullName", min_length=2)
+    email: EmailStr
+    password: str = Field(min_length=8)
+    role: UserRole
+    organization_name: str | None = Field(default=None, alias="organizationName")
+
+    model_config = {"populate_by_name": True}
+
+    @field_validator("password")
+    @classmethod
+    def password_complexity(cls, value: str) -> str:
+        if not any(c.isupper() for c in value):
+            raise ValueError("Include at least one uppercase letter")
+        if not any(c.islower() for c in value):
+            raise ValueError("Include at least one lowercase letter")
+        if not any(c.isdigit() for c in value):
+            raise ValueError("Include at least one number")
+        return value
+
+
+class AdminUpdateUserRequest(BaseModel):
+    full_name: str | None = Field(default=None, alias="fullName", min_length=2)
+    organization_name: str | None = Field(default=None, alias="organizationName")
+    role: UserRole | None = None
+    is_active: bool | None = Field(default=None, alias="isActive")
+    reset_password: str | None = Field(default=None, alias="resetPassword", min_length=8)
+
+    model_config = {"populate_by_name": True}
+
+    @field_validator("reset_password")
+    @classmethod
+    def password_complexity(cls, value: str | None) -> str | None:
+        if value is None:
+            return value
+        if not any(c.isupper() for c in value):
+            raise ValueError("Include at least one uppercase letter")
+        if not any(c.islower() for c in value):
+            raise ValueError("Include at least one lowercase letter")
+        if not any(c.isdigit() for c in value):
+            raise ValueError("Include at least one number")
+        return value
 
 
 class UpdateShipmentRequest(BaseModel):

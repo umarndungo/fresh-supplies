@@ -3,6 +3,7 @@ from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.application.auth_service import AuthService
+from app.application.admin_service import AdminService
 from app.application.device_service import DeviceService
 from app.application.driver_service import DriverService
 from app.application.mobile_auth_service import MobileAuthService
@@ -61,6 +62,10 @@ async def get_mobile_shipment_service(session: AsyncSession = Depends(get_db_ses
 
 async def get_mobile_recommendation_service(session: AsyncSession = Depends(get_db_session)) -> MobileRecommendationService:
     return MobileRecommendationService(SqlAlchemyShipmentRepository(session))
+
+
+async def get_admin_service(session: AsyncSession = Depends(get_db_session)) -> AdminService:
+    return AdminService(SqlAlchemyUserRepository(session))
 
 
 async def get_current_user(

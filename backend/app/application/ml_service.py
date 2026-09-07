@@ -81,6 +81,34 @@ def predict_spoilage(shipment: dict) -> dict:
     }
 
 
+def _normalize_crop(name: str) -> str:
+    """Lowercases and strips a trailing plural 's' for tolerant matching."""
+    name = name.strip().lower()
+    return name[:-1] if name.endswith("s") else name
+
+
+def _match_crop(crop: str, available_crops: list[str]) -> str | None:
+    """Finds the canonical crop name in the price table.
+
+    The price table stores plural display names (e.g. "Bananas", "Mangoes")
+    while shipment produce types are user-entered ("Banana", "Bananas", ...).
+    Match case- and plural-insensitively, then fall back to fuzzy matching for
+    typos so /ml/recommend-market does not 422 on legitimate crops.
+    """
+    import difflib
+
+    target = _normalize_crop(crop)
+    for name in available_crops:
+        if _normalize_crop(name) == target:
+            return name
+    close = difflib.get_close_matches(target, [_normalize_crop(n) for n in available_crops], n=1, cutoff=0.6)
+    if close:
+        for name in available_crops:
+            if _normalize_crop(name) == close[0]:
+                return name
+    return None
+
+
 def recommend_market(shipment: dict, top_n: int = 5) -> list:
     """Ranks markets for a shipment by revenue retained (spoilage x price)."""
     bundle = load_model_bundle()
@@ -89,9 +117,11 @@ def recommend_market(shipment: dict, top_n: int = 5) -> list:
     prices = load_market_prices()
 
     crop = shipment.get("crop_type")
-    crop_prices = prices[prices["crop"] == crop]
-    if crop_prices.empty:
+    matched_crop = _match_crop(crop, prices["crop"].unique().tolist()) if crop else None
+    if matched_crop is None:
         raise MLServiceError(f"No market prices found for crop: {crop}")
+
+    crop_prices = prices[prices["crop"] == matched_crop]
 
     quantity_kg = float(shipment.get("quantity_kg", 100.0))
     rankings = []
