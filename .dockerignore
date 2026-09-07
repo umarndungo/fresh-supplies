@@ -1,0 +1,12 @@
+node_modules
+.next
+.git
+backend
+docs
+db
+post_harvest_data_engine
+media
+*.md
+.env
+.env.local
+.env.*.local
