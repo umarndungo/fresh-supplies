@@ -16,3 +16,4 @@ Claude*
 PROJECT_PLAN.md
 *.joblib
 frontend_description.md
+backend/.venv/
