@@ -31,6 +31,7 @@ fresh-supplies/
 ├── src/                      # Next.js web frontend
 ├── post_harvest_data_engine/ # ML training, ETL, data pipeline
 ├── docs/                     # Developer handoff docs, API contracts
+├── db/                       # PostgreSQL bootstrap (init/ + bootstrap.sh)
 ├── docker-compose.yml        # PostgreSQL 16
 └── PROJECT_PLAN.md           # 5-phase project roadmap
 ```
@@ -45,9 +46,33 @@ fresh-supplies/
 
 ### 1. Database
 
+**Choose your own DB name / user / password** — define them in a private root
+`.env` (gitignored), copied from the template:
+
+```bash
+cp .env.example .env          # then edit DB_NAME, DB_USER, DB_PASS to whatever you like
+```
+
+The defaults are `freshroute` / `freshrouteadmin` / `freshroute@2120`. These
+variables drive both Docker Compose (fresh volumes auto-provision the role and
+make it the DB owner via `db/init/01-application-user.sh`) and the manual
+bootstrap below.
+
 ```bash
 docker compose up -d          # Starts PostgreSQL 16 on localhost:5432
 ```
+
+The auto-provision only runs on **fresh** volumes, so for any volume initialized
+before that init script existed, run the one-time bootstrap once:
+
+```bash
+./db/bootstrap.sh             # idempotent — creates the .env DB user + grants all privileges & ownership
+```
+
+`backend/.env`'s `DATABASE_URL` must point at the same user/db you chose — update
+it to match if you changed `DB_NAME`/`DB_USER`/`DB_PASS` (a literal `@` in the
+password is URL-encoded as `%40`). Bootstrap prints a warning if the two drift
+apart.
 
 ### 2. Backend
 
@@ -55,7 +80,7 @@ docker compose up -d          # Starts PostgreSQL 16 on localhost:5432
 cd backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # Edit JWT_SECRET_KEY and DATABASE_URL
+cp .env.example .env          # Edit JWT_SECRET_KEY and DATABASE_URL (match the DB_* values in root .env)
 alembic upgrade head           # Apply migrations
 uvicorn app.main:app --reload  # http://localhost:8000
 ```
@@ -197,16 +222,31 @@ Trained model artifacts are loaded at backend startup for real-time inference vi
 
 ## Environment Variables
 
+### Database / Docker (`./.env`)
+
+```env
+DB_NAME=freshroute
+DB_USER=freshrouteadmin
+DB_PASS=freshroute@2120
+```
+
+Copied from `.env.example` and edited to your liking — gitignored, so these stay
+private. Shared by `docker-compose.yml` and `db/bootstrap.sh`.
+
 ### Backend (`backend/.env`)
 
 ```env
-DATABASE_URL=postgresql+asyncpg://postgres:postgres@localhost:5432/freshroute
+DATABASE_URL=postgresql+asyncpg://freshrouteadmin:freshroute%402120@localhost:5432/freshroute
 JWT_SECRET_KEY=<random-secret>
 JWT_ALGORITHM=HS256
 ACCESS_TOKEN_EXPIRE_MINUTES=15
 REFRESH_TOKEN_EXPIRE_DAYS=7
 FRONTEND_ORIGIN=http://localhost:3000
 ```
+
+`DATABASE_URL` user/password/db must match the `DB_USER`/`DB_PASS`/`DB_NAME`
+values above (a literal `@` in the password is URL-encoded as `%40`), and must
+not be the `postgres` superuser.
 
 ### Frontend (`src/.env.local`)
 
