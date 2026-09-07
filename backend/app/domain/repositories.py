@@ -51,6 +51,24 @@ class UserRepository(ABC):
         profile_completed: bool | None = None,
     ) -> None: ...
 
+    @abstractmethod
+    async def list_all(self) -> list[User]: ...
+
+    @abstractmethod
+    async def update_admin_user(
+        self,
+        user_id: UUID,
+        *,
+        full_name: str | None = None,
+        organization_name: str | None = None,
+        role: UserRole | None = None,
+        is_active: bool | None = None,
+        hashed_password: str | None = None,
+    ) -> User | None: ...
+
+    @abstractmethod
+    async def delete(self, user_id: UUID) -> bool: ...
+
 
 class ShipmentRepository(ABC):
     @abstractmethod
