@@ -21,7 +21,7 @@ export function LandingHero() {
 
             <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
               Move fresh produce from farm to market before the{" "}
-              <span className="text-primary underline decoration-accent/60 decoration-wavy decoration-2 underline-offset-8">
+              <span className="text-primary">
                 freshness window closes
               </span>
               .
