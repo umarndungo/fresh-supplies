@@ -84,10 +84,13 @@ apiClient.interceptors.response.use(
     isRefreshing = true;
 
     try {
-      const { data } = await apiClient.post<{ accessToken: string }>(API_ENDPOINTS.auth.refresh);
-      setAccessToken(data.accessToken);
-      processQueue(null, data.accessToken);
-      originalRequest.headers.set("Authorization", `Bearer ${data.accessToken}`);
+      const { data } = await apiClient.post<{ data: { accessToken: string } }>(
+        API_ENDPOINTS.auth.refresh
+      );
+      const refreshedAccessToken = data.data.accessToken;
+      setAccessToken(refreshedAccessToken);
+      processQueue(null, refreshedAccessToken);
+      originalRequest.headers.set("Authorization", `Bearer ${refreshedAccessToken}`);
       return apiClient(originalRequest);
     } catch (refreshError) {
       processQueue(refreshError, null);
