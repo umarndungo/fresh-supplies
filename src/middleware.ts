@@ -1,39 +1,14 @@
 import { NextResponse } from "next/server";
-import type { NextRequest } from "next/server";
-
-const PROTECTED_PREFIXES = ["/dashboard"];
-const AUTH_PAGES = ["/login", "/register"];
-
-// Check for the httpOnly refresh token cookie set by the backend on login
-const REFRESH_COOKIE_NAME = "frs_refresh_token";
 
 const DEV_AUTH_BYPASS = process.env.NEXT_PUBLIC_DEV_AUTH_BYPASS === "true";
 
-export function middleware(request: NextRequest) {
+export function middleware() {
   if (DEV_AUTH_BYPASS) {
     return NextResponse.next();
   }
 
-  const { pathname } = request.nextUrl;
-  // Check for the server-set httpOnly refresh cookie (available on refresh)
-  const hasRefreshToken = request.cookies.has(REFRESH_COOKIE_NAME);
-
-  const isProtected = PROTECTED_PREFIXES.some((prefix) => pathname.startsWith(prefix));
-  const isAuthPage = AUTH_PAGES.some((page) => pathname.startsWith(page));
-
-  // Protected routes: require refresh token
-  if (isProtected && !hasRefreshToken) {
-    const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirectTo", pathname);
-    return NextResponse.redirect(loginUrl);
-  }
-
-  // Auth pages: DO NOT redirect based on refresh token alone
-  // The token might be expired - let client-side auth validate and handle redirects
-  // if (isAuthPage && hasRefreshToken) {
-  //   return NextResponse.redirect(new URL("/dashboard", request.url));
-  // }
-
+  // Auth is validated client-side because the refresh cookie belongs to the
+  // separate API domain and is not visible to this frontend middleware.
   return NextResponse.next();
 }
 
