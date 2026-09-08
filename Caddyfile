@@ -1,6 +1,6 @@
 api.132.145.69.180.sslip.io {
     reverse_proxy backend:8000
 }
-app.132.145.69.180.sslip.io {
-    reverse_proxy frontend:3000
-}
+#app.132.145.69.180.sslip.io {
+#    reverse_proxy frontend:3000
+#}
