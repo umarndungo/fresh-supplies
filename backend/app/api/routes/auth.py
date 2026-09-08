@@ -10,6 +10,9 @@ from app.domain.entities import User
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 _REFRESH_COOKIE_MAX_AGE = settings.REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60
+_REFRESH_COOKIE_PATH = "/"
+_REFRESH_COOKIE_SAMESITE = "none"
+_REFRESH_COOKIE_SECURE = True
 
 
 def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
@@ -17,10 +20,20 @@ def _set_refresh_cookie(response: Response, refresh_token: str) -> None:
         key=settings.REFRESH_COOKIE_NAME,
         value=refresh_token,
         httponly=True,
-        secure=settings.COOKIE_SECURE,
-        samesite="lax",
+        secure=_REFRESH_COOKIE_SECURE,
+        samesite=_REFRESH_COOKIE_SAMESITE,
         max_age=_REFRESH_COOKIE_MAX_AGE,
-        path="/",
+        path=_REFRESH_COOKIE_PATH,
+    )
+
+
+def _clear_refresh_cookie(response: Response) -> None:
+    response.delete_cookie(
+        key=settings.REFRESH_COOKIE_NAME,
+        httponly=True,
+        secure=_REFRESH_COOKIE_SECURE,
+        samesite=_REFRESH_COOKIE_SAMESITE,
+        path=_REFRESH_COOKIE_PATH,
     )
 
 
@@ -67,14 +80,14 @@ async def refresh(
 ):
     refresh_token = request.cookies.get(settings.REFRESH_COOKIE_NAME)
     if not refresh_token:
-        response.delete_cookie(settings.REFRESH_COOKIE_NAME, path="/")
+        _clear_refresh_cookie(response)
         raise UnauthorizedError("No refresh token was provided.")
 
     try:
         _user, access_token, _expires_in, new_refresh_token = await auth_service.refresh(refresh_token)
     except UnauthorizedError:
         # Refresh token is invalid/expired - delete the cookie
-        response.delete_cookie(settings.REFRESH_COOKIE_NAME, path="/")
+        _clear_refresh_cookie(response)
         raise
     _set_refresh_cookie(response, new_refresh_token)
     return {"data": {"accessToken": access_token}}
@@ -82,7 +95,7 @@ async def refresh(
 
 @router.post("/logout", status_code=204)
 async def logout(response: Response) -> None:
-    response.delete_cookie(settings.REFRESH_COOKIE_NAME, path="/")
+    _clear_refresh_cookie(response)
 
 
 @router.get("/me")

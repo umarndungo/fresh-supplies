@@ -19,7 +19,7 @@ class Settings(BaseSettings):
 
     FRONTEND_ORIGIN: str = "http://localhost:3000"
     REFRESH_COOKIE_NAME: str = "frs_refresh_token"
-    COOKIE_SECURE: bool = False
+    COOKIE_SECURE: bool = True
 
     ML_MODEL_PATH: str = (
         "../post_harvest_data_engine/data/processed/food/food_model_inference.joblib"
