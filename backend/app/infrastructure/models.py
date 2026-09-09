@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, String, Text
+from sqlalchemy import JSON, DateTime, ForeignKey, Numeric, String, Text
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import UUID as PGUUID
 from sqlalchemy.orm import Mapped, mapped_column
@@ -81,6 +81,7 @@ class ShipmentModel(Base):
     spoilage_probability: Mapped[float | None] = mapped_column(nullable=True)
     risk_tier: Mapped[str | None] = mapped_column(nullable=True)
     spoil_prediction: Mapped[bool | None] = mapped_column(nullable=True)
+    market_recommendations: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

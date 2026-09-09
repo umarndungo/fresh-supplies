@@ -5,7 +5,13 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.core.config import settings
 
-engine = create_async_engine(settings.DATABASE_URL, echo=settings.ENVIRONMENT == "development", future=True)
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.ENVIRONMENT == "development",
+    future=True,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
 async_session_factory = async_sessionmaker(engine, expire_on_commit=False)
 
 

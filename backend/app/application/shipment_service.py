@@ -68,9 +68,21 @@ class ShipmentService:
         actor: User,
         status: ShipmentStatus | None = None,
         delivery_date=None,
+        spoilage_probability: float | None = None,
+        risk_tier: str | None = None,
+        spoil_prediction: bool | None = None,
+        market_recommendations: list[dict] | None = None,
     ) -> Shipment:
         self._ensure_can_manage(actor)
-        updated = await self._shipments.update(shipment_id, status=status, delivery_date=delivery_date)
+        updated = await self._shipments.update(
+            shipment_id,
+            status=status,
+            delivery_date=delivery_date,
+            spoilage_probability=spoilage_probability,
+            risk_tier=risk_tier,
+            spoil_prediction=spoil_prediction,
+            market_recommendations=market_recommendations,
+        )
         if not updated:
             raise NotFoundError("Shipment not found.")
         return updated

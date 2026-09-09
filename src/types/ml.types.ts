@@ -53,4 +53,12 @@ export interface MarketRecommendationOut {
   price_per_kg: number;
   spoilage_probability: number;
   revenue_retained: number;
+  duration_minutes?: number;
+  route_provider?: string;
+  route_estimated?: boolean;
+  route_geometry?: {
+    type: "LineString";
+    coordinates: [number, number][];
+  };
+  selection_reason?: string;
 }

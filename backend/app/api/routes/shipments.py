@@ -31,6 +31,15 @@ async def create_shipment(
         destination=payload.destination,
         produce_type=payload.produce_type,
         scheduled_date=payload.scheduled_date,
+        origin_latitude=payload.origin_latitude,
+        origin_longitude=payload.origin_longitude,
+        destination_latitude=payload.destination_latitude,
+        destination_longitude=payload.destination_longitude,
+        temperature_c=payload.temperature_c,
+        transit_duration_hr=payload.transit_duration_hr,
+        pressure_psi=payload.pressure_psi,
+        baseline_loss_pct=payload.baseline_loss_pct,
+        quantity_kg=payload.quantity_kg,
     )
     return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}
 
@@ -53,7 +62,14 @@ async def update_shipment(
     service: ShipmentService = Depends(get_shipment_service),
 ):
     shipment = await service.update_shipment(
-        shipment_id, actor=current_user, status=payload.status, delivery_date=payload.delivery_date
+        shipment_id,
+        actor=current_user,
+        status=payload.status,
+        delivery_date=payload.delivery_date,
+        spoilage_probability=payload.spoilage_probability,
+        risk_tier=payload.risk_tier,
+        spoil_prediction=payload.spoil_prediction,
+        market_recommendations=payload.market_recommendations,
     )
     return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}
 

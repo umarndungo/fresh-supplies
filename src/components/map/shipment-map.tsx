@@ -53,6 +53,20 @@ const ROUTE_COLORS = [
   "#f97316", // orange
 ];
 
+function isValidRouteGeometry(
+  geometry: MarketRecommendationOut["route_geometry"]
+): geometry is { type: "LineString"; coordinates: [number, number][] } {
+  return Boolean(
+    geometry?.type === "LineString" &&
+      geometry.coordinates.length >= 2 &&
+      geometry.coordinates.every(
+        ([lng, lat]) =>
+          Number.isFinite(lat) && Number.isFinite(lng) &&
+          lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+      )
+  );
+}
+
 function isValidCoordinate(
   point: { lat: number; lng: number } | null | undefined
 ): point is { lat: number; lng: number } {
@@ -86,6 +100,8 @@ interface ShipmentMapProps {
   }>;
   filterRiskTier?: "Fresh" | "At-Risk" | "Critical" | "all";
   filterCrop?: string;
+  onRouteClick?: (recommendation: MarketRecommendationOut) => void;
+  onShipmentClick?: (shipmentId: string) => void;
 }
 
 export function ShipmentMap({
@@ -97,6 +113,8 @@ export function ShipmentMap({
   shipments = [],
   filterRiskTier = "all",
   filterCrop,
+  onRouteClick,
+  onShipmentClick,
 }: ShipmentMapProps) {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<L.Map | null>(null);
@@ -233,6 +251,7 @@ export function ShipmentMap({
           ],
           { color, weight: 3, opacity: 0.7, dashArray: "10, 10" }
         ).addTo(map);
+        route.on("click", () => onShipmentClick?.(shipment.id));
         routeLayersRef.current.push(route);
         bounds.push(
           [validOrigin.lat, validOrigin.lng],
@@ -257,12 +276,26 @@ export function ShipmentMap({
           bounds.push([market.latitude, market.longitude]);
         }
       });
+
+      const recommendedRoute = shipmentRecs.find((rec) => isValidRouteGeometry(rec.route_geometry));
+      if (recommendedRoute && isValidRouteGeometry(recommendedRoute.route_geometry)) {
+        const route = L.polyline(
+          recommendedRoute.route_geometry.coordinates.map(([lng, lat]) => [lat, lng] as [number, number]),
+          { color: "#16a34a", weight: 5, opacity: 0.85 }
+        ).addTo(map);
+        route.on("click", () => {
+          onShipmentClick?.(shipment.id);
+          onRouteClick?.(recommendedRoute);
+        });
+        routeLayersRef.current.push(route);
+        recommendedRoute.route_geometry.coordinates.forEach(([lng, lat]) => bounds.push([lat, lng]));
+      }
     });
 
     if (bounds.length > 0) {
       map.fitBounds(bounds as L.LatLngBoundsExpression, { padding: [50, 50] });
     }
-  }, [origin, destination, recommendations, showAllMarkets, shipments, filterRiskTier, filterCrop]);
+  }, [origin, destination, recommendations, showAllMarkets, shipments, filterRiskTier, filterCrop, onRouteClick, onShipmentClick]);
 
   if (mapError) {
     return (
