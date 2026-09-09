@@ -6,6 +6,7 @@ import { PageHeader } from "@/components/common/page-header";
 import { RoleGate } from "@/components/auth/role-gate";
 import { useShipments } from "@/hooks/use-shipments";
 import { useAllMarketRecommendations } from "@/hooks/use-analytics";
+import { useEvaluationSummary } from "@/hooks/use-ml";
 import { SpoilageTrendChart } from "@/components/analytics/spoilage-trend-chart";
 import { RevenueByCropChart } from "@/components/analytics/revenue-by-crop-chart";
 import { RiskDistributionChart } from "@/components/analytics/risk-distribution-chart";
@@ -16,6 +17,12 @@ import type { Shipment } from "@/types/shipment.types";
 export default function AnalyticsPage() {
   const { data: shipments, isLoading, isError, refetch } = useShipments();
   const { data: allRecommendations, isLoading: isRecLoading } = useAllMarketRecommendations(shipments ?? []);
+  const {
+    data: evaluation,
+    isLoading: isEvaluationLoading,
+    isError: isEvaluationError,
+    refetch: refetchEvaluation,
+  } = useEvaluationSummary();
 
   if (isLoading) {
     return (
@@ -133,6 +140,107 @@ export default function AnalyticsPage() {
       </div>
 
       <RiskDistributionChart shipments={shipments ?? []} />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Model Evaluation</CardTitle>
+          <p className="text-sm text-muted-foreground">
+            Synthetic benchmark metrics. These results are not field validated.
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {isEvaluationLoading && (
+            <p className="text-sm text-muted-foreground">Loading evaluation metrics...</p>
+          )}
+          {isEvaluationError && (
+            <div className="flex items-center justify-between gap-4 rounded-md border border-destructive/30 bg-destructive/5 p-4">
+              <p className="text-sm text-muted-foreground">
+                Evaluation metrics are unavailable. The backend may need the latest model artifacts.
+              </p>
+              <button
+                type="button"
+                onClick={() => void refetchEvaluation()}
+                className="btn btn-outline btn-sm shrink-0"
+              >
+                Retry
+              </button>
+            </div>
+          )}
+          {evaluation && (
+            <>
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-md border p-4">
+                  <p className="text-sm text-muted-foreground">Best classifier</p>
+                  <p className="mt-1 text-lg font-semibold uppercase">
+                    {evaluation.best_classification_model ?? "Unavailable"}
+                  </p>
+                </div>
+                <div className="rounded-md border p-4">
+                  <p className="text-sm text-muted-foreground">Best regression model</p>
+                  <p className="mt-1 text-lg font-semibold uppercase">
+                    {evaluation.best_regression_model ?? "Unavailable"}
+                  </p>
+                </div>
+                <div className="rounded-md border p-4">
+                  <p className="text-sm text-muted-foreground">Data source</p>
+                  <p className="mt-1 text-lg font-semibold capitalize">{evaluation.data_source}</p>
+                </div>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-2">
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">Regression metrics</h3>
+                  <div className="overflow-x-auto rounded-md border">
+                    <table className="w-full text-sm">
+                      <thead className="border-b bg-muted/40 text-left">
+                        <tr>
+                          <th className="px-3 py-2">Model</th>
+                          <th className="px-3 py-2">RMSE</th>
+                          <th className="px-3 py-2">MAE</th>
+                          <th className="px-3 py-2">R²</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {Object.entries(evaluation.regression).map(([model, metrics]) => (
+                          <tr key={model} className="border-b last:border-0">
+                            <td className="px-3 py-2 font-medium uppercase">{model}</td>
+                            <td className="px-3 py-2">{metrics.rmse?.toFixed(3) ?? "-"}</td>
+                            <td className="px-3 py-2">{metrics.mae?.toFixed(3) ?? "-"}</td>
+                            <td className="px-3 py-2">{metrics.r2?.toFixed(3) ?? "-"}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+                <div>
+                  <h3 className="mb-3 text-sm font-semibold">Route benchmark</h3>
+                  <dl className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+                    <div className="rounded-md border p-3">
+                      <dt className="text-xs text-muted-foreground">Transit-time change</dt>
+                      <dd className="text-lg font-semibold">
+                        {evaluation.route_evaluation.transit_time_reduction_pct.toFixed(1)}%
+                      </dd>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <dt className="text-xs text-muted-foreground">Spoilage reduction</dt>
+                      <dd className="text-lg font-semibold">
+                        {evaluation.route_evaluation.spoilage_reduction_pct.toFixed(1)} points
+                      </dd>
+                    </div>
+                    <div className="rounded-md border p-3">
+                      <dt className="text-xs text-muted-foreground">Revenue retention change</dt>
+                      <dd className="text-lg font-semibold">
+                        {evaluation.route_evaluation.revenue_retention_change_pct.toFixed(1)}%
+                      </dd>
+                    </div>
+                  </dl>
+                </div>
+              </div>
+            </>
+          )}
+        </CardContent>
+      </Card>
 
       <div className="grid gap-6 md:grid-cols-3">
         <Card>

@@ -17,6 +17,7 @@ export const API_ENDPOINTS = {
   ml: {
     predictSpoilage: "/ml/predict-spoilage",
     recommendMarket: "/ml/recommend-market",
+    evaluationSummary: "/ml/evaluation-summary",
   },
   admin: {
     users: {

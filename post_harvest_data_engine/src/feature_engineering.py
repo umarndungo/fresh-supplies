@@ -35,4 +35,19 @@ def engineer_pipeline_features(df: pd.DataFrame) -> pd.DataFrame:
         df_time["Temperature_C"] * df_time["Transit_Duration_Hr"]
     )
 
+  if {"Temperature_C", "Relative_Humidity_Pct"}.issubset(df_time.columns):
+    df_time["Heat_Humidity_Stress"] = (
+        df_time["Temperature_C"] * df_time["Relative_Humidity_Pct"] / 100.0
+    )
+
+  if {"Route_Distance_Km", "Vehicle_Speed_Kmh"}.issubset(df_time.columns):
+    df_time["Route_Friction_Index"] = (
+        df_time["Route_Distance_Km"] / df_time["Vehicle_Speed_Kmh"].clip(lower=1.0)
+    )
+
+  if {"Rainfall_Intensity_Mm", "Transit_Duration_Hr"}.issubset(df_time.columns):
+    df_time["Rainfall_Exposure"] = (
+        df_time["Rainfall_Intensity_Mm"] * df_time["Transit_Duration_Hr"]
+    )
+
   return df_time.reset_index()

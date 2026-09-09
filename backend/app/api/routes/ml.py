@@ -7,8 +7,9 @@ from app.application.ml_schemas import (
     MarketRecommendationRequest,
     SpoilageRequest,
     SuspicionOut,
+    EvaluationSummaryOut,
 )
-from app.application.ml_service import predict_spoilage, recommend_market
+from app.application.ml_service import load_evaluation_summary, predict_spoilage, recommend_market
 
 # /ml endpoints require a valid bearer token (same auth as shipments/produce).
 # ML inference itself is stateless, but exposing it without auth would let
@@ -28,3 +29,13 @@ async def recommend_market_route(payload: MarketRecommendationRequest):
         recommend_market, payload.model_dump(), payload.top_n
     )
     return [MarketRecommendationOut(**r) for r in result]
+
+
+@router.get(
+    "/evaluation-summary",
+    response_model=EvaluationSummaryOut,
+    dependencies=[Depends(get_current_user)],
+)
+async def evaluation_summary_route():
+    result = await run_in_threadpool(load_evaluation_summary)
+    return EvaluationSummaryOut(**result)

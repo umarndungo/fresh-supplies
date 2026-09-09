@@ -53,6 +53,20 @@ def generate_raw_telemetry(
   temps[outlier_idx] = np.random.choice([88.0, -25.0], size=len(outlier_idx))
 
   pressures = np.random.normal(32.0, 1.5, num_records)
+  relative_humidity = np.clip(
+      78.0 - (temps - 20.0) * 2.0 + np.random.normal(0, 6.0, num_records),
+      25.0,
+      100.0,
+  )
+  rainfall_intensity = np.maximum(
+      0.0,
+      np.random.gamma(shape=1.2, scale=2.0, size=num_records)
+      * (relative_humidity > 82.0),
+  )
+  vehicle_speed = np.clip(np.random.normal(38.0, 9.0, num_records), 8.0, 70.0)
+  route_distance = np.round(np.random.uniform(20.0, 280.0, num_records), 2)
+  stopover_duration = np.round(np.random.exponential(0.75, num_records), 2)
+  transit_duration = np.round(route_distance / vehicle_speed + stopover_duration, 2)
   baseline_losses = np.random.uniform(8.0, 18.0, num_records)
 
   df = pd.DataFrame({
@@ -63,6 +77,17 @@ def generate_raw_telemetry(
       "longitude": lons,
       "Temperature_C": np.round(temps, 2),
       "Pressure_PSI": np.round(pressures, 2),
+      "Relative_Humidity_Pct": np.round(relative_humidity, 2),
+      "Rainfall_Intensity_Mm": np.round(rainfall_intensity, 2),
+      "Vehicle_Speed_Kmh": np.round(vehicle_speed, 2),
+      "Route_Distance_Km": route_distance,
+      "Stopover_Duration_Hr": stopover_duration,
+      "Transit_Duration_Hr": transit_duration,
+      "Vehicle_Category": np.random.choice(
+          ["Motorbike", "Pickup", "Light Truck", "Refrigerated Truck"],
+          num_records,
+          p=[0.12, 0.38, 0.38, 0.12],
+      ),
       "Shift": np.random.choice(shifts, num_records),
       "baseline_loss_pct": np.round(baseline_losses, 2)
   })
