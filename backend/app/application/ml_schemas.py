@@ -32,6 +32,11 @@ class MarketRecommendationOut(BaseModel):
     price_per_kg: float
     spoilage_probability: float
     revenue_retained: float
+    duration_minutes: float | None = None
+    route_provider: str | None = None
+    route_estimated: bool = True
+    route_geometry: dict | None = None
+    selection_reason: str | None = None
 
 
 class ModelMetricsOut(BaseModel):

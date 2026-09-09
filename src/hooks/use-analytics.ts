@@ -28,6 +28,10 @@ export function useAllMarketRecommendations(shipments: Shipment[]) {
       const results: Record<string, MarketRecommendationOut[]> = {};
       await Promise.all(
         shipmentsWithLocation.map(async (shipment) => {
+            if (shipment.marketRecommendations?.length) {
+              results[shipment.id] = shipment.marketRecommendations;
+              return;
+            }
           try {
             const recommendations = await recommendMarketRequest(buildMarketRequest(shipment));
             results[shipment.id] = recommendations;

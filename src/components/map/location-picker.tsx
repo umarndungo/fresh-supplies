@@ -121,7 +121,7 @@ export function LocationPicker({ latitude, longitude, onLocationChange, label = 
       mapInstanceRef.current.removeLayer(marker);
       setMarker(null);
     }
-    onLocationChange(0, 0); // Will be handled by parent to clear
+    onLocationChange(Number.NaN, Number.NaN);
   };
 
   // Filter markets based on search query

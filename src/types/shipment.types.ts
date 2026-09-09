@@ -28,6 +28,7 @@ export interface Shipment {
   spoilageProbability?: number;
   riskTier?: RiskTier;
   spoilPrediction?: boolean;
+  marketRecommendations?: import("@/types/ml.types").MarketRecommendationOut[];
 }
 
 export interface CreateShipmentPayload {
@@ -52,4 +53,8 @@ export interface CreateShipmentPayload {
 export interface UpdateShipmentPayload {
   status?: ShipmentStatus;
   deliveryDate?: string | null;
+  spoilageProbability?: number;
+  riskTier?: RiskTier;
+  spoilPrediction?: boolean;
+  marketRecommendations?: import("@/types/ml.types").MarketRecommendationOut[];
 }

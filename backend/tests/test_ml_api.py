@@ -164,7 +164,8 @@ def test_recommend_market_authenticated(as_authenticated):
     assert isinstance(body, list) and len(body) <= 5
     assert body, "should return at least one market for a known crop"
     keys = {"market_id", "market_name", "region", "distance_km",
-            "price_per_kg", "spoilage_probability", "revenue_retained"}
+            "price_per_kg", "spoilage_probability", "revenue_retained",
+            "duration_minutes", "route_geometry"}
     for row in body:
         assert keys <= set(row)
         assert row["revenue_retained"] > 0

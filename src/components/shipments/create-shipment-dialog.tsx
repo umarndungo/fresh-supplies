@@ -171,8 +171,8 @@ export function CreateShipmentDialog() {
               latitude={form.watch("originLatitude")}
               longitude={form.watch("originLongitude")}
               onLocationChange={(lat, lng) => {
-                form.setValue("originLatitude", lat);
-                form.setValue("originLongitude", lng);
+                form.setValue("originLatitude", Number.isFinite(lat) ? lat : undefined);
+                form.setValue("originLongitude", Number.isFinite(lng) ? lng : undefined);
               }}
               label="Origin Location (source for ML predictions)"
             />
