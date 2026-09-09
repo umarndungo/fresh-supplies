@@ -6,6 +6,7 @@ light: it only depends on joblib/pandas/numpy/sklearn and the saved artifacts.
 """
 
 from functools import lru_cache
+import json
 from pathlib import Path
 
 import joblib
@@ -17,6 +18,69 @@ from app.core.config import settings
 
 class MLServiceError(Exception):
     pass
+
+
+def load_evaluation_summary() -> dict:
+    """Load synthetic model metrics and the deterministic route benchmark."""
+    model_path = Path(settings.ML_MODEL_PATH)
+    metrics_path = model_path.parent / "food_regression_metrics.json"
+    if not metrics_path.exists():
+        raise MLServiceError(
+            f"Evaluation metrics not found at {metrics_path.resolve()}. "
+            "Run post_harvest_data_engine train_food_model first."
+        )
+
+    regression = json.loads(metrics_path.read_text())
+    classification = {}
+    training_bundle_path = model_path.parent / "food_predictive_models.joblib"
+    if training_bundle_path.exists():
+        training_bundle = joblib.load(training_bundle_path)
+        model = training_bundle.get("model")
+        for name, scores in getattr(model, "cv_results", {}).items():
+            classification[name] = {"roc_auc": round(float(np.mean(scores)), 4)}
+
+    # Deterministic demonstration: static shortest-time route versus the
+    # spoilage-aware route used by the data engine's evaluation benchmark.
+    baseline_hours = 4.0
+    optimized_hours = 8.0
+    baseline_spoilage = 24.0
+    optimized_spoilage = 2.0
+    baseline_revenue = 100.0 * 60.0 * (1.0 - baseline_spoilage / 100.0)
+    optimized_revenue = 100.0 * 60.0 * (1.0 - optimized_spoilage / 100.0)
+
+    return {
+        "data_source": "synthetic",
+        "field_validated": False,
+        "classification": classification,
+        "regression": {
+            name: {metric: round(float(value), 4) for metric, value in metrics.items()}
+            for name, metrics in regression.items()
+        },
+        "best_classification_model": (
+            max(classification, key=lambda name: classification[name]["roc_auc"])
+            if classification else None
+        ),
+        "best_regression_model": min(
+            regression, key=lambda name: regression[name]["rmse"]
+        ) if regression else None,
+        "route_evaluation": {
+            "transit_time_reduction_pct": round(
+                (baseline_hours - optimized_hours) / baseline_hours * 100.0, 4
+            ),
+            "spoilage_reduction_pct": round(
+                baseline_spoilage - optimized_spoilage, 4
+            ),
+            "revenue_retention_change_pct": round(
+                (optimized_revenue - baseline_revenue) / baseline_revenue * 100.0,
+                4,
+            ),
+        },
+        "limitations": [
+            "Metrics are based on synthetic data.",
+            "Results are not field validated.",
+            "Route improvements are a deterministic benchmark, not observed operations.",
+        ],
+    }
 
 
 @lru_cache
