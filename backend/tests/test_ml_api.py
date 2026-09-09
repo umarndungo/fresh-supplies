@@ -91,6 +91,40 @@ def test_recommend_market_requires_auth():
     assert resp.status_code == 401, resp.text
 
 
+def test_evaluation_summary_requires_auth():
+    resp = client.get("/api/v1/ml/evaluation-summary")
+    assert resp.status_code == 401, resp.text
+
+
+def test_evaluation_summary_authenticated(as_authenticated, monkeypatch):
+    monkeypatch.setattr(
+        "app.api.routes.ml.load_evaluation_summary",
+        lambda: {
+            "data_source": "synthetic",
+            "field_validated": False,
+            "classification": {"rf": {"roc_auc": 0.86}},
+            "regression": {
+                "linear": {"rmse": 4.2, "mae": 3.1, "r2": 0.58},
+            },
+            "best_classification_model": "rf",
+            "best_regression_model": "linear",
+            "route_evaluation": {
+                "transit_time_reduction_pct": -100.0,
+                "spoilage_reduction_pct": 22.0,
+                "revenue_retention_change_pct": 28.95,
+            },
+            "limitations": ["Metrics are based on synthetic data."],
+        },
+    )
+    resp = client.get("/api/v1/ml/evaluation-summary")
+    assert resp.status_code == 200, resp.text
+    body = resp.json()
+    assert body["data_source"] == "synthetic"
+    assert body["field_validated"] is False
+    assert body["regression"]["linear"]["rmse"] == 4.2
+    assert body["route_evaluation"]["spoilage_reduction_pct"] == 22.0
+
+
 def test_predict_spoilage_authenticated(as_authenticated):
     resp = client.post("/api/v1/ml/predict-spoilage", json=SPOILAGE_PAYLOAD)
     assert resp.status_code == 200, resp.text

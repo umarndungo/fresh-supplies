@@ -21,6 +21,30 @@ export interface SuspicionOut {
   spoil_prediction: boolean;
 }
 
+export interface EvaluationModelMetrics {
+  rmse?: number;
+  mae?: number;
+  r2?: number;
+  roc_auc?: number;
+}
+
+export interface RouteEvaluationSummary {
+  transit_time_reduction_pct: number;
+  spoilage_reduction_pct: number;
+  revenue_retention_change_pct: number;
+}
+
+export interface EvaluationSummary {
+  data_source: "synthetic" | "real" | string;
+  field_validated: boolean;
+  classification: Record<string, EvaluationModelMetrics>;
+  regression: Record<string, EvaluationModelMetrics>;
+  best_classification_model: string | null;
+  best_regression_model: string | null;
+  route_evaluation: RouteEvaluationSummary;
+  limitations: string[];
+}
+
 export interface MarketRecommendationOut {
   market_id: string;
   market_name: string;

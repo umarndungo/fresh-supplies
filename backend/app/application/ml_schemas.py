@@ -32,3 +32,27 @@ class MarketRecommendationOut(BaseModel):
     price_per_kg: float
     spoilage_probability: float
     revenue_retained: float
+
+
+class ModelMetricsOut(BaseModel):
+    rmse: Optional[float] = None
+    mae: Optional[float] = None
+    r2: Optional[float] = None
+    roc_auc: Optional[float] = None
+
+
+class RouteEvaluationOut(BaseModel):
+    transit_time_reduction_pct: float
+    spoilage_reduction_pct: float
+    revenue_retention_change_pct: float
+
+
+class EvaluationSummaryOut(BaseModel):
+    data_source: str
+    field_validated: bool
+    classification: dict[str, ModelMetricsOut]
+    regression: dict[str, ModelMetricsOut]
+    best_classification_model: Optional[str] = None
+    best_regression_model: Optional[str] = None
+    route_evaluation: RouteEvaluationOut
+    limitations: list[str]
