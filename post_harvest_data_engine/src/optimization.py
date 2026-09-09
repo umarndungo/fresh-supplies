@@ -68,6 +68,83 @@ def calculate_optimal_route(
         return []
 
 
+def evaluate_route_strategies(
+    graph_data: dict,
+    start_node: str,
+    end_node: str,
+    spoilage_risk_map: dict | None = None,
+    quantity_kg: float = 100.0,
+    unit_price: float = 1.0,
+) -> dict:
+    """Compare a shortest-transit baseline with the spoilage-aware route.
+
+    The baseline represents a static schedule that minimises transit time. The
+    optimized route minimises the existing friction score, which includes time,
+    thermal exposure, spoilage risk, and distance.
+    """
+    graph = nx.Graph()
+    for edge in graph_data.get("edges", []):
+        from_node = edge["from"]
+        to_node = edge["to"]
+        risk = edge.get("spoilage_risk", 1.0)
+        if spoilage_risk_map:
+            risk = spoilage_risk_map.get(from_node, 1.0) + edge.get("spoilage_risk", 0.0)
+        graph.add_edge(
+            from_node,
+            to_node,
+            transit_hours=edge.get("transit_hours", 1.0),
+            distance_km=edge.get("distance_km", 1.0),
+            spoilage_risk=risk,
+            friction=build_friction_score(
+                edge.get("distance_km", 1.0),
+                edge.get("transit_hours", 1.0),
+                risk,
+                edge.get("temp_c", 25.0),
+            ),
+        )
+
+    def summarize(path: list) -> dict:
+        edges = _edges_along_path(graph, path)
+        transit_hours = sum(edge["transit_hours"] for edge in edges)
+        distance_km = sum(edge["distance_km"] for edge in edges)
+        spoilage_pct = min(sum(edge["spoilage_risk"] for edge in edges), 99.0)
+        return {
+            "path": path,
+            "transit_hours": round(transit_hours, 3),
+            "distance_km": round(distance_km, 3),
+            "spoilage_pct": round(spoilage_pct, 3),
+            "revenue_retained": round(
+                estimate_revenue_retained(quantity_kg, unit_price, spoilage_pct), 3
+            ),
+        }
+
+    try:
+        baseline_path = nx.shortest_path(graph, start_node, end_node, weight="transit_hours")
+        optimized_path = nx.shortest_path(graph, start_node, end_node, weight="friction")
+    except nx.NetworkXNoPath:
+        return {"baseline": None, "optimized": None, "improvement": None}
+
+    baseline = summarize(baseline_path)
+    optimized = summarize(optimized_path)
+    baseline_hours = baseline["transit_hours"]
+    improvement = {
+        "transit_time_reduction_pct": round(
+            ((baseline_hours - optimized["transit_hours"]) / baseline_hours) * 100.0,
+            3,
+        ) if baseline_hours else 0.0,
+        "spoilage_reduction_pct": round(
+            baseline["spoilage_pct"] - optimized["spoilage_pct"], 3
+        ),
+        "revenue_retention_change_pct": round(
+            ((optimized["revenue_retained"] - baseline["revenue_retained"])
+             / baseline["revenue_retained"] * 100.0)
+            if baseline["revenue_retained"] else 0.0,
+            3,
+        ),
+    }
+    return {"baseline": baseline, "optimized": optimized, "improvement": improvement}
+
+
 def recommend_market_destinations(
     graph_data: dict,
     start_node: str,

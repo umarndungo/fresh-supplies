@@ -105,3 +105,20 @@ def test_numpy_feature_magnitudes_finite():
     df = _build_realistic_spoilage(_sample_food_df())
     assert np.isfinite(df["estimated_loss_pct"]).all()
     assert df["estimated_loss_pct"].between(0, 60).all()
+
+
+def test_continuous_loss_regression_reports_required_metrics():
+    """The proposal's continuous-loss metrics must be reproducible."""
+    from src.train_food_model import engineer_food_features
+
+    df = engineer_food_features(_sample_food_df(n=600))
+    pm = PredictiveModels()
+    X, y = pm.prepare_regression_features(df)
+    results = pm.train_regression_and_evaluate(X, y)
+
+    assert {"linear", "rf", "xgb"}.issubset(results)
+    for metrics in results.values():
+        assert set(metrics) == {"rmse", "mae", "r2"}
+        assert metrics["rmse"] >= 0
+        assert metrics["mae"] >= 0
+        assert -1 <= metrics["r2"] <= 1
