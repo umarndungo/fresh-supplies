@@ -9,6 +9,9 @@ export interface SpoilageRequest {
   Pressure_PSI: number;
   baseline_loss_pct: number;
   quantity_kg: number;
+  harvest_age_hours?: number;
+  storage_spoilage_probability?: number;
+  estimated_shelf_life_days?: number;
 }
 
 export interface MarketRecommendationRequest extends SpoilageRequest {
@@ -19,6 +22,10 @@ export interface SuspicionOut {
   spoilage_probability: number;
   risk_tier: RiskTier;
   spoil_prediction: boolean;
+  transit_spoilage_probability?: number;
+  storage_spoilage_probability?: number;
+  total_spoilage_probability?: number;
+  estimated_shelf_life_days?: number;
 }
 
 export interface EvaluationModelMetrics {
@@ -61,4 +68,7 @@ export interface MarketRecommendationOut {
     coordinates: [number, number][];
   };
   selection_reason?: string;
+  transit_spoilage_probability?: number;
+  storage_spoilage_probability?: number;
+  total_spoilage_probability?: number;
 }

@@ -88,6 +88,10 @@ class ShipmentRepository(ABC):
         scheduled_date: datetime,
         delivery_date: datetime | None,
         created_by: UUID,
+        produce_id: UUID | None = None,
+        harvest_date_snapshot: datetime | None = None,
+        storage_spoilage_probability_snapshot: float | None = None,
+        estimated_shelf_life_days_snapshot: float | None = None,
     ) -> Shipment: ...
 
     @abstractmethod
@@ -101,6 +105,10 @@ class ShipmentRepository(ABC):
         risk_tier: str | None = None,
         spoil_prediction: bool | None = None,
         market_recommendations: list[dict] | None = None,
+        produce_id: UUID | None = None,
+        harvest_date_snapshot: datetime | None = None,
+        storage_spoilage_probability_snapshot: float | None = None,
+        estimated_shelf_life_days_snapshot: float | None = None,
     ) -> Shipment | None: ...
 
     @abstractmethod
@@ -127,6 +135,8 @@ class ProduceRepository(ABC):
         storage_location: str,
         cooperative_id: UUID,
         status: ProduceStatus,
+        storage_temperature_c: float | None = None,
+        storage_pressure_psi: float | None = None,
     ) -> ProduceItem: ...
 
     @abstractmethod
@@ -142,6 +152,12 @@ class ProduceRepository(ABC):
         harvest_date: datetime | None = None,
         storage_location: str | None = None,
         status: ProduceStatus | None = None,
+        storage_temperature_c: float | None = None,
+        storage_pressure_psi: float | None = None,
+        storage_spoilage_probability: float | None = None,
+        storage_risk_tier: str | None = None,
+        storage_spoil_prediction: bool | None = None,
+        estimated_shelf_life_days: float | None = None,
     ) -> ProduceItem | None: ...
 
     @abstractmethod

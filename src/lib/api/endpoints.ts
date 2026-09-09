@@ -16,6 +16,7 @@ export const API_ENDPOINTS = {
   },
   ml: {
     predictSpoilage: "/ml/predict-spoilage",
+    predictStorageSpoilage: "/ml/predict-storage-spoilage",
     recommendMarket: "/ml/recommend-market",
     evaluationSummary: "/ml/evaluation-summary",
   },

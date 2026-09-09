@@ -12,6 +12,25 @@ class SpoilageRequest(BaseModel):
     Pressure_PSI: float = Field(30.0)
     baseline_loss_pct: float = Field(10.0, ge=0, le=100)
     quantity_kg: float = Field(100.0, gt=0)
+    harvest_age_hours: float = Field(0.0, ge=0, le=8760)
+    storage_spoilage_probability: float = Field(0.0, ge=0, le=1)
+
+
+class StorageSpoilageRequest(BaseModel):
+    crop_type: str = Field(..., description="Crop name, e.g. Tomatoes")
+    harvest_date: str = Field(..., description="ISO harvest timestamp")
+    storage_temperature_c: float = Field(25.0, ge=-20, le=60)
+    storage_pressure_psi: float = Field(30.0, ge=0)
+    quality_grade: str = Field("A", min_length=1)
+    quantity_kg: float = Field(100.0, gt=0)
+
+
+class StorageSpoilageOut(BaseModel):
+    storage_age_hours: float
+    storage_spoilage_probability: float
+    storage_risk_tier: str
+    storage_spoil_prediction: bool
+    estimated_shelf_life_days: float
 
 
 class MarketRecommendationRequest(SpoilageRequest):
@@ -22,6 +41,10 @@ class SuspicionOut(BaseModel):
     spoilage_probability: float
     risk_tier: str
     spoil_prediction: bool
+    transit_spoilage_probability: float | None = None
+    storage_spoilage_probability: float | None = None
+    total_spoilage_probability: float | None = None
+    estimated_shelf_life_days: float | None = None
 
 
 class MarketRecommendationOut(BaseModel):
@@ -37,6 +60,9 @@ class MarketRecommendationOut(BaseModel):
     route_estimated: bool = True
     route_geometry: dict | None = None
     selection_reason: str | None = None
+    transit_spoilage_probability: float | None = None
+    storage_spoilage_probability: float | None = None
+    total_spoilage_probability: float | None = None
 
 
 class ModelMetricsOut(BaseModel):

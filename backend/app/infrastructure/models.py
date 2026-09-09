@@ -66,6 +66,7 @@ class ShipmentModel(Base):
     photo_ref: Mapped[str | None] = mapped_column(String(512), nullable=True)
     photo_status: Mapped[str | None] = mapped_column(String(20), nullable=True)
     client_id: Mapped[str | None] = mapped_column(String(36), unique=True, nullable=True)
+    produce_id: Mapped[uuid.UUID | None] = mapped_column(PGUUID(as_uuid=True), ForeignKey("produce.id"), nullable=True)
     # Origin location (source) - for ML predictions
     origin_latitude: Mapped[float | None] = mapped_column(nullable=True)
     origin_longitude: Mapped[float | None] = mapped_column(nullable=True)
@@ -82,6 +83,9 @@ class ShipmentModel(Base):
     risk_tier: Mapped[str | None] = mapped_column(nullable=True)
     spoil_prediction: Mapped[bool | None] = mapped_column(nullable=True)
     market_recommendations: Mapped[list[dict] | None] = mapped_column(JSON, nullable=True)
+    harvest_date_snapshot: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    storage_spoilage_probability_snapshot: Mapped[float | None] = mapped_column(nullable=True)
+    estimated_shelf_life_days_snapshot: Mapped[float | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
@@ -108,6 +112,12 @@ class ProduceModel(Base):
     status: Mapped[ProduceStatus] = mapped_column(
         SAEnum(ProduceStatus, name="produce_status"), nullable=False, default=ProduceStatus.AVAILABLE
     )
+    storage_temperature_c: Mapped[float | None] = mapped_column(nullable=True)
+    storage_pressure_psi: Mapped[float | None] = mapped_column(nullable=True)
+    storage_spoilage_probability: Mapped[float | None] = mapped_column(nullable=True)
+    storage_risk_tier: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    storage_spoil_prediction: Mapped[bool | None] = mapped_column(nullable=True)
+    estimated_shelf_life_days: Mapped[float | None] = mapped_column(nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc))
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

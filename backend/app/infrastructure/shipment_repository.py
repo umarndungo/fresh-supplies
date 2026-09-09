@@ -33,6 +33,10 @@ def _to_entity(model: ShipmentModel) -> Shipment:
         risk_tier=model.risk_tier,
         spoil_prediction=model.spoil_prediction,
         market_recommendations=model.market_recommendations,
+        produce_id=model.produce_id,
+        harvest_date_snapshot=model.harvest_date_snapshot,
+        storage_spoilage_probability_snapshot=model.storage_spoilage_probability_snapshot,
+        estimated_shelf_life_days_snapshot=model.estimated_shelf_life_days_snapshot,
     )
 
 
@@ -70,6 +74,10 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
         pressure_psi: float | None = None,
         baseline_loss_pct: float | None = None,
         quantity_kg: float | None = None,
+        produce_id: UUID | None = None,
+        harvest_date_snapshot=None,
+        storage_spoilage_probability_snapshot: float | None = None,
+        estimated_shelf_life_days_snapshot: float | None = None,
     ) -> Shipment:
         model = ShipmentModel(
             origin=origin,
@@ -88,6 +96,10 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
             pressure_psi=pressure_psi,
             baseline_loss_pct=baseline_loss_pct,
             quantity_kg=quantity_kg,
+            produce_id=produce_id,
+            harvest_date_snapshot=harvest_date_snapshot,
+            storage_spoilage_probability_snapshot=storage_spoilage_probability_snapshot,
+            estimated_shelf_life_days_snapshot=estimated_shelf_life_days_snapshot,
         )
         self._session.add(model)
         await self._session.commit()
@@ -104,6 +116,10 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
         risk_tier: str | None = None,
         spoil_prediction: bool | None = None,
         market_recommendations: list[dict] | None = None,
+        produce_id: UUID | None = None,
+        harvest_date_snapshot=None,
+        storage_spoilage_probability_snapshot: float | None = None,
+        estimated_shelf_life_days_snapshot: float | None = None,
     ) -> Shipment | None:
         model = await self._session.get(ShipmentModel, shipment_id)
         if not model:
@@ -120,6 +136,14 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
             model.spoil_prediction = spoil_prediction
         if market_recommendations is not None:
             model.market_recommendations = market_recommendations
+        if produce_id is not None:
+            model.produce_id = produce_id
+        if harvest_date_snapshot is not None:
+            model.harvest_date_snapshot = harvest_date_snapshot
+        if storage_spoilage_probability_snapshot is not None:
+            model.storage_spoilage_probability_snapshot = storage_spoilage_probability_snapshot
+        if estimated_shelf_life_days_snapshot is not None:
+            model.estimated_shelf_life_days_snapshot = estimated_shelf_life_days_snapshot
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)

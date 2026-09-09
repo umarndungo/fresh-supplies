@@ -8,8 +8,10 @@ from app.application.ml_schemas import (
     SpoilageRequest,
     SuspicionOut,
     EvaluationSummaryOut,
+    StorageSpoilageOut,
+    StorageSpoilageRequest,
 )
-from app.application.ml_service import load_evaluation_summary, predict_spoilage, recommend_market
+from app.application.ml_service import load_evaluation_summary, predict_spoilage, predict_storage_spoilage, recommend_market
 
 # /ml endpoints require a valid bearer token (same auth as shipments/produce).
 # ML inference itself is stateless, but exposing it without auth would let
@@ -21,6 +23,12 @@ router = APIRouter(prefix="/ml", tags=["ml"])
 async def predict_spoilage_route(payload: SpoilageRequest):
     result = await run_in_threadpool(predict_spoilage, payload.model_dump())
     return SuspicionOut(**result)
+
+
+@router.post("/predict-storage-spoilage", response_model=StorageSpoilageOut, dependencies=[Depends(get_current_user)])
+async def predict_storage_spoilage_route(payload: StorageSpoilageRequest):
+    result = await run_in_threadpool(predict_storage_spoilage, payload.model_dump())
+    return StorageSpoilageOut(**result)
 
 
 @router.post("/recommend-market", response_model=list[MarketRecommendationOut], dependencies=[Depends(get_current_user)])
