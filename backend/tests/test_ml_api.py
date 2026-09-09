@@ -12,6 +12,7 @@ session so the dependency graph resolves without connecting to Postgres.
 """
 
 from datetime import datetime, timezone
+import json
 from uuid import uuid4
 
 import pytest
@@ -21,6 +22,7 @@ from app.domain.entities import User, UserRole
 from app.infrastructure.db import get_db_session
 from app.api.deps import get_current_user
 from app.main import app
+from app.application import ml_service
 
 client = TestClient(app)
 
@@ -123,6 +125,24 @@ def test_evaluation_summary_authenticated(as_authenticated, monkeypatch):
     assert body["field_validated"] is False
     assert body["regression"]["linear"]["rmse"] == 4.2
     assert body["route_evaluation"]["spoilage_reduction_pct"] == 22.0
+
+
+def test_evaluation_summary_does_not_load_training_bundle(tmp_path, monkeypatch):
+    artifact_dir = tmp_path / "food"
+    artifact_dir.mkdir()
+    (artifact_dir / "food_regression_metrics.json").write_text(
+        json.dumps({"rf": {"rmse": 1.0, "mae": 0.5, "r2": 0.8}})
+    )
+    (artifact_dir / "food_classification_metrics.json").write_text(
+        json.dumps({"rf": {"roc_auc": 0.86}})
+    )
+    monkeypatch.setattr(ml_service.settings, "ML_MODEL_PATH", str(artifact_dir / "inference.joblib"))
+    monkeypatch.setattr(ml_service, "joblib", type("NoJoblib", (), {
+        "load": staticmethod(lambda _: (_ for _ in ()).throw(AssertionError("training bundle loaded")))
+    }))
+
+    result = ml_service.load_evaluation_summary()
+    assert result["classification"]["rf"]["roc_auc"] == 0.86
 
 
 def test_predict_spoilage_authenticated(as_authenticated):
