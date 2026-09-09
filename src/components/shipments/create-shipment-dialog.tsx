@@ -118,9 +118,9 @@ export function CreateShipmentDialog() {
                 <FormItem>
                   <FormLabel>Origin</FormLabel>
                   <FormControl>
-                    <Input placeholder="Green Valley Cooperative, Nakuru" {...field} />
+                    <Input placeholder="Kianyaga, Kirinyaga County" {...field} />
                   </FormControl>
-                  <FormDescription>Farm or cooperative where the produce is loaded.</FormDescription>
+                  <FormDescription>Type a farm, town, or collection point. Select a result below to set its coordinates.</FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -168,6 +168,7 @@ export function CreateShipmentDialog() {
               />
             </div>
             <LocationPicker
+              searchQuery={form.watch("origin")}
               latitude={form.watch("originLatitude")}
               longitude={form.watch("originLongitude")}
               onLocationChange={(lat, lng) => {

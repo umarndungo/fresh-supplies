@@ -11,6 +11,8 @@ class Settings(BaseSettings):
     ENVIRONMENT: str = "development"
 
     DATABASE_URL: str = "postgresql+asyncpg://postgres:postgres@localhost:5432/freshroute"
+    GEOCODING_URL: str = "https://nominatim.openstreetmap.org/search"
+    GEOCODING_USER_AGENT: str = "FreshRouteAI/1.0 (location search)"
 
     JWT_SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"

@@ -19,6 +19,9 @@ export const API_ENDPOINTS = {
     recommendMarket: "/ml/recommend-market",
     evaluationSummary: "/ml/evaluation-summary",
   },
+  locations: {
+    search: "/locations/search",
+  },
   admin: {
     users: {
       base: "/admin/users",
