@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import { ArrowLeft, Truck, MapPin, Calendar, Package, Thermometer, Gauge, Scale, AlertCircle, CheckCircle, XCircle, Loader2, Trash2, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,10 +17,21 @@ import { usePredictSpoilage, useRecommendMarket } from "@/hooks/use-ml";
 import { useShipment, useDeleteShipment } from "@/hooks/use-shipments";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
-import { ShipmentMap } from "@/components/map/shipment-map";
 import { KENYAN_MARKETS } from "@/components/map/kenyan-markets";
 import type { Shipment } from "@/types/shipment.types";
 import type { MarketRecommendationOut } from "@/types/ml.types";
+
+const ShipmentMap = dynamic(
+  () => import("@/components/map/shipment-map").then((module) => module.ShipmentMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[500px] items-center justify-center rounded-xl border border-border bg-card text-sm text-muted-foreground">
+        Loading map...
+      </div>
+    ),
+  }
+);
 
 function buildSpoilageRequest(shipment: Shipment) {
   return {
