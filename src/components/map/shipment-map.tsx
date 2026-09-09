@@ -53,6 +53,20 @@ const ROUTE_COLORS = [
   "#f97316", // orange
 ];
 
+function isValidCoordinate(
+  point: { lat: number; lng: number } | null | undefined
+): point is { lat: number; lng: number } {
+  return Boolean(
+    point &&
+      Number.isFinite(point.lat) &&
+      Number.isFinite(point.lng) &&
+      point.lat >= -90 &&
+      point.lat <= 90 &&
+      point.lng >= -180 &&
+      point.lng <= 180
+  );
+}
+
 interface ShipmentMapProps {
   // Legacy single shipment props
   origin?: { lat: number; lng: number; name?: string };
@@ -183,40 +197,47 @@ export function ShipmentMap({
     filteredShipments.forEach((shipment, index) => {
       const color = ROUTE_COLORS[index % ROUTE_COLORS.length];
       const shipmentRecs = shipment.recommendations ?? [];
+      const validOrigin = isValidCoordinate(shipment.origin) ? shipment.origin : undefined;
+      const validDestination = isValidCoordinate(shipment.destination)
+        ? shipment.destination
+        : undefined;
 
       // Origin marker
-      if (shipment.origin) {
-        const marker = L.marker([shipment.origin.lat, shipment.origin.lng], { icon: originIcon })
+      if (validOrigin) {
+        const marker = L.marker([validOrigin.lat, validOrigin.lng], { icon: originIcon })
           .bindPopup(
-            `<strong>Origin</strong><br/>${shipment.origin.name ?? "Shipment Origin"}<br/>
+            `<strong>Origin</strong><br/>${validOrigin.name ?? "Shipment Origin"}<br/>
              ${shipment.produceType ? `Crop: ${shipment.produceType}` : ""}
              ${shipment.riskTier ? `Risk: ${shipment.riskTier}` : ""}`
           );
         marker.addTo(map);
         markersRef.current.push(marker);
-        bounds.push([shipment.origin.lat, shipment.origin.lng]);
+        bounds.push([validOrigin.lat, validOrigin.lng]);
       }
 
       // Destination marker
-      if (shipment.destination) {
-        const marker = L.marker([shipment.destination.lat, shipment.destination.lng], { icon: recommendedMarketIcon })
-          .bindPopup(`<strong>Destination</strong><br/>${shipment.destination.name ?? "Shipment Destination"}`);
+      if (validDestination) {
+        const marker = L.marker([validDestination.lat, validDestination.lng], { icon: recommendedMarketIcon })
+          .bindPopup(`<strong>Destination</strong><br/>${validDestination.name ?? "Shipment Destination"}`);
         marker.addTo(map);
         markersRef.current.push(marker);
-        bounds.push([shipment.destination.lat, shipment.destination.lng]);
+        bounds.push([validDestination.lat, validDestination.lng]);
       }
 
       // Route line
-      if (shipment.origin && shipment.destination) {
+      if (validOrigin && validDestination) {
         const route = L.polyline(
           [
-            [shipment.origin.lat, shipment.origin.lng],
-            [shipment.destination.lat, shipment.destination.lng],
+            [validOrigin.lat, validOrigin.lng],
+            [validDestination.lat, validDestination.lng],
           ],
           { color, weight: 3, opacity: 0.7, dashArray: "10, 10" }
         ).addTo(map);
         routeLayersRef.current.push(route);
-        bounds.push([shipment.origin.lat, shipment.origin.lng], [shipment.destination.lat, shipment.destination.lng]);
+        bounds.push(
+          [validOrigin.lat, validOrigin.lng],
+          [validDestination.lat, validDestination.lng]
+        );
       }
 
       // Recommended markets for this shipment
