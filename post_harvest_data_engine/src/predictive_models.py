@@ -4,11 +4,15 @@ import matplotlib.pyplot as plt
 import shap
 import joblib
 from sklearn.model_selection import StratifiedKFold, cross_val_score
+from sklearn.model_selection import KFold, cross_validate
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.metrics import classification_report, confusion_matrix, roc_auc_score
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import classification_report, confusion_matrix, mean_absolute_error, mean_squared_error, r2_score, roc_auc_score
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from xgboost import XGBClassifier
+from xgboost import XGBRegressor
 from imblearn.pipeline import Pipeline as ImbPipeline
 from imblearn.over_sampling import SMOTE
 from src.crops import SPOILAGE_FRAILTY
@@ -33,6 +37,8 @@ class PredictiveModels:
         self.feature_names = None
         self.kmeans = None
         self.cv_results = {}
+        self.regression_results = {}
+        self.regression_models = {}
 
     def prepare_features(self, df):
         """Build feature matrix and spoilage target from the integrated dataset."""
@@ -99,6 +105,69 @@ class PredictiveModels:
 
         print(f"Best model: {self.best_model_name.upper()}")
         return self.cv_results
+
+    def prepare_regression_features(self, df):
+        """Build features and continuous estimated-loss target without leakage."""
+        if "estimated_loss_pct" not in df.columns:
+            raise ValueError("estimated_loss_pct is required for regression.")
+
+        feature_cols = [
+            "Temperature_C", "Pressure_PSI", "Transit_Duration_Hr",
+            "baseline_loss_pct", "Thermal_Heat_Exposure",
+            "Distance_To_Market_Km", "price_per_kg",
+        ]
+        available = [c for c in feature_cols if c in df.columns]
+        if "high_heat_risk_zone" in df.columns:
+            available.append("high_heat_risk_zone")
+
+        working = df.copy()
+        if "Shift" in working.columns:
+            working = pd.get_dummies(working, columns=["Shift"], drop_first=True)
+            available.extend([c for c in working.columns if c.startswith("Shift_")])
+
+        for col in available:
+            working[col] = pd.to_numeric(working[col], errors="coerce")
+
+        X = working[available].fillna(0)
+        y = pd.to_numeric(working["estimated_loss_pct"], errors="coerce")
+        valid = y.notna()
+        self.regression_feature_names = list(X.columns)
+        return X.loc[valid], y.loc[valid]
+
+    def train_regression_and_evaluate(self, X, y):
+        """Compare continuous-loss regressors with leakage-safe cross-validation."""
+        models = {
+            "linear": LinearRegression(),
+            "rf": RandomForestRegressor(
+                n_estimators=250, random_state=self.random_state, n_jobs=-1
+            ),
+            "xgb": XGBRegressor(
+                n_estimators=300, max_depth=4, learning_rate=0.08,
+                objective="reg:squarederror", random_state=self.random_state,
+            ),
+        }
+        cv = KFold(n_splits=5, shuffle=True, random_state=self.random_state)
+        scoring = {
+            "rmse": "neg_root_mean_squared_error",
+            "mae": "neg_mean_absolute_error",
+            "r2": "r2",
+        }
+
+        for name, model in models.items():
+            scores = cross_validate(model, X, y, cv=cv, scoring=scoring)
+            metrics = {
+                "rmse": float(-scores["test_rmse"].mean()),
+                "mae": float(-scores["test_mae"].mean()),
+                "r2": float(scores["test_r2"].mean()),
+            }
+            self.regression_results[name] = metrics
+            self.regression_models[name] = model.fit(X, y)
+
+        self.best_regression_model_name = min(
+            self.regression_results,
+            key=lambda name: self.regression_results[name]["rmse"],
+        )
+        return self.regression_results
 
     def evaluate_full(self, X, y):
         """Confusion matrix + classification report on a holdout split."""

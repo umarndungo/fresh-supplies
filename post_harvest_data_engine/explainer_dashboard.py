@@ -22,6 +22,7 @@ import seaborn as sns
 sys.path.insert(0, os.path.dirname(__file__))
 from src.predictive_models import PredictiveModels, _build_realistic_spoilage
 from src.feature_engineering import engineer_pipeline_features
+from src.optimization import evaluate_route_strategies
 from config import settings  # noqa: F401  (imported for visibility)
 
 st.set_page_config(
@@ -70,6 +71,7 @@ tab = st.sidebar.radio(
         "3 · Feature Engineering",
         "4 · The Model",
         "5 · Results & Insights",
+        "6 · Evaluation",
     ],
 )
 
@@ -307,4 +309,69 @@ elif tab == "5 · Results & Insights":
         f"and predicts spoilage primarily from **cumulative thermal load**. "
         "Next, this probability feeds the route optimizer to pick cooler, faster, "
         "more profitable markets."
+    )
+
+# ---------------------------------------------------------------------------
+# 6. EVALUATION
+# ---------------------------------------------------------------------------
+elif tab == "6 · Evaluation":
+    st.header("6 · Model and route evaluation")
+    st.caption("Results below are reproducible simulations on the local dataset, not field-validated outcomes.")
+
+    with st.spinner("Evaluating continuous spoilage loss models…"):
+        df, pm, _, _, _ = load_training_artifacts()
+        regression_X, regression_y = pm.prepare_regression_features(df)
+        regression_results = pm.train_regression_and_evaluate(regression_X, regression_y)
+
+    st.subheader("Continuous spoilage-loss regression")
+    st.markdown(
+        "The classification model supplies risk tiers; these regressors estimate continuous "
+        "loss percentage and are evaluated with the proposal's RMSE, MAE, and R² metrics."
+    )
+    regression_rows = []
+    for name, metrics in regression_results.items():
+        regression_rows.append({
+            "Model": name.upper(),
+            "RMSE": round(metrics["rmse"], 3),
+            "MAE": round(metrics["mae"], 3),
+            "R²": round(metrics["r2"], 3),
+        })
+    st.dataframe(pd.DataFrame(regression_rows), use_container_width=True)
+    st.caption(f"Best regression model by RMSE: **{pm.best_regression_model_name.upper()}**")
+
+    st.subheader("Baseline versus spoilage-aware routing")
+    route_graph = {
+        "edges": [
+            {"from": "farm", "to": "fast", "distance_km": 30, "transit_hours": 2,
+             "temp_c": 38, "spoilage_risk": 12},
+            {"from": "fast", "to": "market", "distance_km": 30, "transit_hours": 2,
+             "temp_c": 38, "spoilage_risk": 12},
+            {"from": "farm", "to": "cool", "distance_km": 50, "transit_hours": 4,
+             "temp_c": 22, "spoilage_risk": 1},
+            {"from": "cool", "to": "market", "distance_km": 50, "transit_hours": 4,
+             "temp_c": 22, "spoilage_risk": 1},
+        ]
+    }
+    route_result = evaluate_route_strategies(
+        route_graph, "farm", "market", quantity_kg=100.0, unit_price=60.0
+    )
+    route_rows = []
+    for name in ("baseline", "optimized"):
+        route = route_result[name]
+        route_rows.append({
+            "Strategy": name.title(),
+            "Path": " → ".join(route["path"]),
+            "Transit hours": route["transit_hours"],
+            "Distance km": route["distance_km"],
+            "Spoilage %": route["spoilage_pct"],
+            "Revenue retained": route["revenue_retained"],
+        })
+    st.dataframe(pd.DataFrame(route_rows), use_container_width=True)
+    improvement = route_result["improvement"]
+    st.metric("Simulated spoilage reduction", f"{improvement['spoilage_reduction_pct']:.1f} percentage points")
+    st.metric("Simulated revenue-retention change", f"{improvement['revenue_retention_change_pct']:.1f}%")
+    st.info(
+        "The route benchmark is a deterministic demonstration of the scoring logic. "
+        "It must be replaced with observed shipment routes before claiming a 15–25% "
+        "transport-time reduction."
     )

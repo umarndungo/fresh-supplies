@@ -10,6 +10,7 @@ Outputs (data/processed/food/):
 
 from pathlib import Path
 import math
+import json
 
 import joblib
 import pandas as pd
@@ -60,6 +61,12 @@ def train_food_model():
     pm.train_and_evaluate(X, y)
     pm.get_feature_importance()
 
+    regression_df = _build_realistic_spoilage(df.copy())
+    regression_X, regression_y = pm.prepare_regression_features(regression_df)
+    regression_metrics = pm.train_regression_and_evaluate(regression_X, regression_y)
+    metrics_out = food_dir / "food_regression_metrics.json"
+    metrics_out.write_text(json.dumps(regression_metrics, indent=2) + "\n")
+
     # Score every shipment
     proba = pm.predict_proba(X)
     pred, _, tiers = pm.predict(X, threshold=0.5)
@@ -93,6 +100,7 @@ def train_food_model():
     df.to_csv(scored_out, index=False)
 
     print(f"[Train] Saved model -> {model_out}")
+    print(f"[Train] Saved regression metrics -> {metrics_out}")
     print(f"[Train] Saved scored FOOD dataset -> {scored_out}")
     print(f"[Train] Spoiled rate: {int(y.sum())}/{len(y)} ({y.mean()*100:.1f}%)")
     return pm, df
