@@ -27,6 +27,20 @@ synthetic market prices, the thin FAOSTAT baseline, and no model versioning.
 
 ## 2. Deliverables — what's next
 
+The following proposal-alignment work is now implemented:
+
+- A reproducible data-engine environment and root `pytest.ini`.
+- Continuous spoilage-loss regression with RMSE, MAE, and R² metrics.
+- Baseline-versus-spoilage-aware route evaluation with transport, spoilage, and
+  revenue-retention comparisons.
+- Synthetic climate/logistics fields for humidity, rainfall, speed, distance,
+  stopovers, transit duration, and vehicle category.
+- Dashboard evaluation view exposing those metrics as simulated results.
+
+The results are not field validation. Real arrival-loss outcomes, real market
+prices, and observed route baselines are still required before claiming the
+proposal's 15–25% transport improvement or measurable spoilage reduction.
+
 ### 2.1 Real-data ingestion path from the mobile capture flow — the big opportunity
 
 > **Backend status: reconciliation is live.** The `shipment_sync_staging` →

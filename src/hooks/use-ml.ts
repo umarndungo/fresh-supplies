@@ -1,10 +1,20 @@
 "use client";
 
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { predictSpoilageRequest, recommendMarketRequest } from "@/lib/api/ml.api";
+import {
+  fetchEvaluationSummaryRequest,
+  predictSpoilageRequest,
+  recommendMarketRequest,
+} from "@/lib/api/ml.api";
 import { ApiError } from "@/lib/api/api-error";
-import type { SpoilageRequest, SuspicionOut, MarketRecommendationRequest, MarketRecommendationOut } from "@/types/ml.types";
+import type {
+  EvaluationSummary,
+  SpoilageRequest,
+  SuspicionOut,
+  MarketRecommendationRequest,
+  MarketRecommendationOut,
+} from "@/types/ml.types";
 
 export function usePredictSpoilage() {
   return useMutation<SuspicionOut, ApiError, SpoilageRequest>({
@@ -21,5 +31,13 @@ export function useRecommendMarket() {
     onError: (error) => {
       toast.error(error instanceof ApiError ? error.message : "Unable to get market recommendations.");
     },
+  });
+}
+
+export function useEvaluationSummary() {
+  return useQuery<EvaluationSummary, ApiError>({
+    queryKey: ["ml", "evaluation-summary"],
+    queryFn: fetchEvaluationSummaryRequest,
+    staleTime: 5 * 60 * 1000,
   });
 }

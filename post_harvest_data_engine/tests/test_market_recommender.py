@@ -12,15 +12,36 @@ import numpy as np
 
 from src.crops import CROP_NAMES
 from src.market_pricing import generate_market_prices, rank_markets
+from src.feature_engineering import engineer_pipeline_features
+from src.telemetry_generator import generate_raw_telemetry
 from src.optimization import (
     estimate_revenue_retained,
     recommend_market_for_shipment,
     recommend_market_destinations,
     build_friction_score,
+    evaluate_route_strategies,
 )
 
 FOOD_DIR = "data/processed/food"
 MARKETS_N = 10
+
+
+def test_telemetry_contains_required_logistics_and_climate_fields(tmp_path):
+    telemetry = generate_raw_telemetry(50, str(tmp_path / "telemetry.csv"))
+    required = {
+        "Temperature_C", "Relative_Humidity_Pct", "Rainfall_Intensity_Mm",
+        "Vehicle_Speed_Kmh", "Route_Distance_Km", "Stopover_Duration_Hr",
+        "Transit_Duration_Hr", "Vehicle_Category",
+    }
+    assert required.issubset(telemetry.columns)
+    assert telemetry["Relative_Humidity_Pct"].between(25, 100).all()
+    assert (telemetry["Rainfall_Intensity_Mm"] >= 0).all()
+    assert (telemetry["Transit_Duration_Hr"] > 0).all()
+
+    engineered = engineer_pipeline_features(telemetry)
+    assert {"Heat_Humidity_Stress", "Route_Friction_Index", "Rainfall_Exposure"}.issubset(
+        engineered.columns
+    )
 
 
 def test_market_prices_cover_all_crops():
@@ -74,6 +95,26 @@ def test_recommend_market_destinations_ranks_top_n():
     assert len(out) == 2
     revs = [r["revenue_retained_per_100kg"] for r in out]
     assert revs == sorted(revs, reverse=True)
+
+
+def test_route_evaluation_compares_baseline_and_optimized_strategy():
+    graph = {
+        "edges": [
+            {"from": "origin", "to": "fast", "distance_km": 30, "transit_hours": 2,
+             "temp_c": 38, "spoilage_risk": 12},
+            {"from": "fast", "to": "market", "distance_km": 30, "transit_hours": 2,
+             "temp_c": 38, "spoilage_risk": 12},
+            {"from": "origin", "to": "cool", "distance_km": 50, "transit_hours": 4,
+             "temp_c": 22, "spoilage_risk": 1},
+            {"from": "cool", "to": "market", "distance_km": 50, "transit_hours": 4,
+             "temp_c": 22, "spoilage_risk": 1},
+        ]
+    }
+    result = evaluate_route_strategies(graph, "origin", "market", unit_price=60.0)
+    assert result["baseline"]["path"] == ["origin", "fast", "market"]
+    assert result["optimized"]["path"] == ["origin", "cool", "market"]
+    assert result["improvement"]["spoilage_reduction_pct"] > 0
+    assert result["improvement"]["revenue_retention_change_pct"] > 0
 
 
 def test_recommend_market_for_shipment_real_model():
