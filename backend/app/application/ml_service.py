@@ -96,7 +96,14 @@ def load_model_bundle() -> dict:
             f"Model artifacts not found at {path.resolve()}. "
             "Run post_harvest_data_engine train_food_model first."
         )
-    return joblib.load(path)
+    try:
+        return joblib.load(path)
+    except Exception as exc:
+        raise MLServiceError(
+            "The ML inference artifact could not be loaded. "
+            "Rebuild the backend with the pinned ML dependencies and refresh the "
+            "Git LFS artifact."
+        ) from exc
 
 
 @lru_cache
