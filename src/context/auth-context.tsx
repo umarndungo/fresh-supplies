@@ -86,8 +86,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch {
         // Ignore errors - we just want to clear the cookie
       }
-      // Redirect to login immediately to avoid stale state
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+      // Public pages can remain visible when an optional session expires. Only
+      // protected dashboard routes should send the user to login.
+      if (typeof window !== "undefined" && window.location.pathname.startsWith("/dashboard")) {
         window.location.href = `/login?redirectTo=${encodeURIComponent(window.location.pathname)}`;
       }
     }
