@@ -91,6 +91,7 @@ class Shipment:
     spoilage_probability: float | None = None
     risk_tier: str | None = None
     spoil_prediction: bool | None = None
+    market_recommendations: list[dict] | None = None
 
 
 @dataclass(frozen=True, slots=True)

@@ -83,6 +83,7 @@ class ShipmentOut(BaseModel):
     spoilage_probability: float | None = Field(default=None, serialization_alias="spoilageProbability")
     risk_tier: str | None = Field(default=None, serialization_alias="riskTier")
     spoil_prediction: bool | None = Field(default=None, serialization_alias="spoilPrediction")
+    market_recommendations: list[dict] | None = Field(default=None, serialization_alias="marketRecommendations")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
@@ -93,11 +94,11 @@ class CreateShipmentRequest(BaseModel):
     produce_type: str = Field(alias="produceType", min_length=2)
     scheduled_date: datetime = Field(alias="scheduledDate")
     # Origin location (source) - for ML predictions
-    origin_latitude: float | None = Field(default=None, alias="originLatitude")
-    origin_longitude: float | None = Field(default=None, alias="originLongitude")
+    origin_latitude: float | None = Field(default=None, alias="originLatitude", ge=-90, le=90)
+    origin_longitude: float | None = Field(default=None, alias="originLongitude", ge=-180, le=180)
     # Destination location (market) coordinates - auto-filled from market selection
-    destination_latitude: float | None = Field(default=None, alias="destinationLatitude")
-    destination_longitude: float | None = Field(default=None, alias="destinationLongitude")
+    destination_latitude: float | None = Field(default=None, alias="destinationLatitude", ge=-90, le=90)
+    destination_longitude: float | None = Field(default=None, alias="destinationLongitude", ge=-180, le=180)
     # ML prediction fields (optional)
     temperature_c: float | None = Field(default=None, alias="temperatureC")
     transit_duration_hr: float | None = Field(default=None, alias="transitDurationHr")
@@ -173,6 +174,10 @@ class AdminUpdateUserRequest(BaseModel):
 class UpdateShipmentRequest(BaseModel):
     status: ShipmentStatus | None = None
     delivery_date: datetime | None = Field(default=None, alias="deliveryDate")
+    spoilage_probability: float | None = Field(default=None, alias="spoilageProbability", ge=0, le=1)
+    risk_tier: str | None = Field(default=None, alias="riskTier")
+    spoil_prediction: bool | None = Field(default=None, alias="spoilPrediction")
+    market_recommendations: list[dict] | None = Field(default=None, alias="marketRecommendations")
 
     model_config = {"populate_by_name": True}
 

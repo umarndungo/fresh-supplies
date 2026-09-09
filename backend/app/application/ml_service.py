@@ -14,10 +14,15 @@ import numpy as np
 import pandas as pd
 
 from app.core.config import settings
+from app.application.routing import Coordinate, RoutingProvider, StraightLineRoutingProvider
 
 
 class MLServiceError(Exception):
     pass
+
+
+def get_routing_provider() -> RoutingProvider:
+    return StraightLineRoutingProvider()
 
 
 def load_evaluation_summary() -> dict:
@@ -199,8 +204,14 @@ def recommend_market(shipment: dict, top_n: int = 5) -> list:
     crop_prices = prices[prices["crop"] == matched_crop]
 
     quantity_kg = float(shipment.get("quantity_kg", 100.0))
+    routing_provider = get_routing_provider()
+    origin = Coordinate(float(shipment["latitude"]), float(shipment["longitude"]))
     rankings = []
     for _, mkt in crop_prices.iterrows():
+        route = routing_provider.get_route(
+            origin,
+            Coordinate(float(mkt["market_lat"]), float(mkt["market_lon"])),
+        )
         distance_km = _haversine(
             shipment["latitude"], shipment["longitude"], mkt["market_lat"], mkt["market_lon"]
         )
@@ -215,10 +226,15 @@ def recommend_market(shipment: dict, top_n: int = 5) -> list:
                 "market_id": mkt["market_id"],
                 "market_name": mkt["market_name"],
                 "region": mkt["region"],
-                "distance_km": round(distance_km, 1),
+                "distance_km": route.distance_km,
+                "duration_minutes": route.duration_minutes,
                 "price_per_kg": mkt["price_per_kg"],
                 "spoilage_probability": round(proba, 3),
                 "revenue_retained": round(revenue, 2),
+                "route_provider": route.provider,
+                "route_estimated": route.estimated,
+                "route_geometry": route.geometry,
+                "selection_reason": "Ranked by expected revenue retained after route spoilage risk",
             }
         )
 

@@ -12,6 +12,7 @@ import { ShipmentMap } from "@/components/map/shipment-map";
 import { useShipments } from "@/hooks/use-shipments";
 import { useAllMarketRecommendations } from "@/hooks/use-analytics";
 import type { Shipment } from "@/types/shipment.types";
+import type { MarketRecommendationOut } from "@/types/ml.types";
 
 const RISK_TIERS = ["all", "Fresh", "At-Risk", "Critical"] as const;
 
@@ -21,6 +22,8 @@ export default function RoutesPage() {
 
   const [filterRiskTier, setFilterRiskTier] = useState<"all" | "Fresh" | "At-Risk" | "Critical">("all");
   const [filterCrop, setFilterCrop] = useState<string>("");
+  const [selectedShipmentId, setSelectedShipmentId] = useState<string | null>(null);
+  const [selectedRoute, setSelectedRoute] = useState<MarketRecommendationOut | null>(null);
 
   // Merge shipment data with market recommendations
   const shipmentsWithData = useMemo(() => {
@@ -208,9 +211,36 @@ export default function RoutesPage() {
             filterCrop={filterCrop}
             height="540px"
             showAllMarkets={true}
+            onShipmentClick={setSelectedShipmentId}
+            onRouteClick={setSelectedRoute}
           />
         </CardContent>
       </Card>
+
+      {(selectedShipmentId || selectedRoute) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Selected Route Details</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {selectedShipmentId && (() => {
+              const shipment = shipmentsWithData.find((item) => item.id === selectedShipmentId);
+              return shipment ? (
+                <p><span className="font-medium">Shipment:</span> {shipment.produceType} · {shipment.origin} → {shipment.destination} · {shipment.status}</p>
+              ) : null;
+            })()}
+            {selectedRoute && (
+              <>
+                <p><span className="font-medium">Optimization:</span> {selectedRoute.market_name} ({selectedRoute.region})</p>
+                <p className="text-muted-foreground">
+                  {selectedRoute.distance_km.toFixed(1)} km · {selectedRoute.duration_minutes !== undefined ? `${(selectedRoute.duration_minutes / 60).toFixed(1)} hours` : "duration unavailable"} · {selectedRoute.price_per_kg.toFixed(2)} KES/kg · {selectedRoute.revenue_retained.toLocaleString()} KES retained
+                </p>
+                <p className="text-muted-foreground">Spoilage estimate: {(selectedRoute.spoilage_probability * 100).toFixed(1)}%</p>
+              </>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <Card>
         <CardHeader>

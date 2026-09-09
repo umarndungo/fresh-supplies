@@ -32,6 +32,7 @@ def _to_entity(model: ShipmentModel) -> Shipment:
         spoilage_probability=model.spoilage_probability,
         risk_tier=model.risk_tier,
         spoil_prediction=model.spoil_prediction,
+        market_recommendations=model.market_recommendations,
     )
 
 
@@ -99,6 +100,10 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
         *,
         status: ShipmentStatus | None = None,
         delivery_date=None,
+        spoilage_probability: float | None = None,
+        risk_tier: str | None = None,
+        spoil_prediction: bool | None = None,
+        market_recommendations: list[dict] | None = None,
     ) -> Shipment | None:
         model = await self._session.get(ShipmentModel, shipment_id)
         if not model:
@@ -107,6 +112,14 @@ class SqlAlchemyShipmentRepository(ShipmentRepository):
             model.status = status
         if delivery_date is not None:
             model.delivery_date = delivery_date
+        if spoilage_probability is not None:
+            model.spoilage_probability = spoilage_probability
+        if risk_tier is not None:
+            model.risk_tier = risk_tier
+        if spoil_prediction is not None:
+            model.spoil_prediction = spoil_prediction
+        if market_recommendations is not None:
+            model.market_recommendations = market_recommendations
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)

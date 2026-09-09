@@ -97,6 +97,10 @@ class ShipmentRepository(ABC):
         *,
         status: ShipmentStatus | None = None,
         delivery_date: datetime | None = None,
+        spoilage_probability: float | None = None,
+        risk_tier: str | None = None,
+        spoil_prediction: bool | None = None,
+        market_recommendations: list[dict] | None = None,
     ) -> Shipment | None: ...
 
     @abstractmethod

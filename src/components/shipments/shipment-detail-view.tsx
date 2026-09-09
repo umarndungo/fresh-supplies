@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import { ArrowLeft, Truck, MapPin, Calendar, Package, Thermometer, Gauge, Scale, AlertCircle, CheckCircle, XCircle, Loader2, Trash2, Map } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { ErrorState } from "@/components/common/error-state";
 import { PageHeader } from "@/components/common/page-header";
 import { RiskTierBadge, getRiskTierFromProbability } from "@/components/shipments/risk-tier-badge";
 import { usePredictSpoilage, useRecommendMarket } from "@/hooks/use-ml";
-import { useShipment, useDeleteShipment } from "@/hooks/use-shipments";
+import { useShipment, useDeleteShipment, useUpdateShipment } from "@/hooks/use-shipments";
 import { useRouter } from "next/navigation";
 import { formatDate } from "@/lib/utils";
 import { KENYAN_MARKETS } from "@/components/map/kenyan-markets";
@@ -95,6 +95,7 @@ export function ShipmentDetailView({ id }: { id: string }) {
   const router = useRouter();
   const { data: shipment, isLoading, isError, refetch } = useShipment(id);
   const deleteShipment = useDeleteShipment();
+  const updateShipment = useUpdateShipment();
   const predictSpoilage = usePredictSpoilage();
   const recommendMarket = useRecommendMarket();
 
@@ -108,6 +109,13 @@ export function ShipmentDetailView({ id }: { id: string }) {
   const [isRecommending, setIsRecommending] = useState(false);
   const [predictError, setPredictError] = useState(false);
   const [recommendError, setRecommendError] = useState(false);
+  const [selectedRoute, setSelectedRoute] = useState<MarketRecommendationOut | null>(null);
+
+  useEffect(() => {
+    if (shipment?.marketRecommendations) {
+      setMarketRecommendations(shipment.marketRecommendations);
+    }
+  }, [shipment]);
 
   async function handlePredict() {
     if (!shipment) return;
@@ -119,6 +127,14 @@ export function ShipmentDetailView({ id }: { id: string }) {
         spoilage_probability: result.spoilage_probability,
         risk_tier: result.risk_tier as "Fresh" | "At-Risk" | "Critical",
         spoil_prediction: result.spoil_prediction,
+      });
+      await updateShipment.mutateAsync({
+        id: shipment.id,
+        payload: {
+          spoilageProbability: result.spoilage_probability,
+          riskTier: result.risk_tier,
+          spoilPrediction: result.spoil_prediction,
+        },
       });
     } catch {
       setPredictError(true);
@@ -134,6 +150,11 @@ export function ShipmentDetailView({ id }: { id: string }) {
     try {
       const result = await recommendMarket.mutateAsync(buildMarketRequest(shipment));
       setMarketRecommendations(result);
+      setSelectedRoute(result[0] ?? null);
+      await updateShipment.mutateAsync({
+        id: shipment.id,
+        payload: { marketRecommendations: result },
+      });
     } catch {
       setRecommendError(true);
     } finally {
@@ -325,6 +346,7 @@ export function ShipmentDetailView({ id }: { id: string }) {
                     <TableRow>
                       <TableHead>Market</TableHead>
                       <TableHead className="text-right">Distance (km)</TableHead>
+                        <TableHead className="text-right">Time</TableHead>
                       <TableHead className="text-right">Price (KES/kg)</TableHead>
                       <TableHead className="text-right">Spoilage %</TableHead>
                       <TableHead className="text-right">Revenue Retained</TableHead>
@@ -340,6 +362,11 @@ export function ShipmentDetailView({ id }: { id: string }) {
                           </div>
                         </TableCell>
                         <TableCell className="text-right">{market.distance_km.toFixed(1)}</TableCell>
+                        <TableCell className="text-right">
+                          {market.duration_minutes !== undefined
+                            ? `${(market.duration_minutes / 60).toFixed(1)}h`
+                            : "-"}
+                        </TableCell>
                         <TableCell className="text-right">{market.price_per_kg.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
                           <Badge variant={(market.spoilage_probability * 100) > 30 ? "destructive" : "default"}>
@@ -391,9 +418,23 @@ export function ShipmentDetailView({ id }: { id: string }) {
             origin={shipment.originLatitude && shipment.originLongitude ? { lat: shipment.originLatitude, lng: shipment.originLongitude, name: shipment.origin } : undefined}
             destination={getDestinationCoordinates(shipment) ?? undefined}
             recommendations={marketRecommendations}
+            onRouteClick={setSelectedRoute}
+            onShipmentClick={() => setSelectedRoute(marketRecommendations[0] ?? null)}
             showAllMarkets={true}
             height="500px"
           />
+          {selectedRoute && (
+            <div className="mt-4 rounded-lg border border-border/60 bg-muted/30 p-4 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="font-semibold">Selected optimized route: {selectedRoute.market_name}</h3>
+                <Badge variant="outline">{selectedRoute.route_provider ?? "Estimated route"}</Badge>
+              </div>
+              <p className="mt-2 text-muted-foreground">
+                {selectedRoute.distance_km.toFixed(1)} km · {selectedRoute.duration_minutes !== undefined ? `${(selectedRoute.duration_minutes / 60).toFixed(1)} hours` : "duration unavailable"} · {selectedRoute.price_per_kg.toFixed(2)} KES/kg
+              </p>
+              <p className="mt-1 text-muted-foreground">Revenue retained: {selectedRoute.revenue_retained.toLocaleString()} KES · Spoilage: {(selectedRoute.spoilage_probability * 100).toFixed(1)}%</p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

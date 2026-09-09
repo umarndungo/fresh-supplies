@@ -17,3 +17,4 @@ PROJECT_PLAN.md
 *.joblib
 frontend_description.md
 backend/.venv/
+local-docker-compose.yml
