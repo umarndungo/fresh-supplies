@@ -61,6 +61,15 @@ def train_food_model():
     pm.train_and_evaluate(X, y)
     pm.get_feature_importance()
 
+    classification_metrics = {
+        name: {"roc_auc": float(aucs.mean())}
+        for name, aucs in pm.cv_results.items()
+    }
+    classification_metrics_out = food_dir / "food_classification_metrics.json"
+    classification_metrics_out.write_text(
+        json.dumps(classification_metrics, indent=2) + "\n"
+    )
+
     regression_df = _build_realistic_spoilage(df.copy())
     regression_X, regression_y = pm.prepare_regression_features(regression_df)
     regression_metrics = pm.train_regression_and_evaluate(regression_X, regression_y)
@@ -100,6 +109,7 @@ def train_food_model():
     df.to_csv(scored_out, index=False)
 
     print(f"[Train] Saved model -> {model_out}")
+    print(f"[Train] Saved classification metrics -> {classification_metrics_out}")
     print(f"[Train] Saved regression metrics -> {metrics_out}")
     print(f"[Train] Saved scored FOOD dataset -> {scored_out}")
     print(f"[Train] Spoiled rate: {int(y.sum())}/{len(y)} ({y.mean()*100:.1f}%)")

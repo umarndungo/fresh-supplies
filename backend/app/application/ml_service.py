@@ -31,13 +31,17 @@ def load_evaluation_summary() -> dict:
         )
 
     regression = json.loads(metrics_path.read_text())
-    classification = {}
-    training_bundle_path = model_path.parent / "food_predictive_models.joblib"
-    if training_bundle_path.exists():
-        training_bundle = joblib.load(training_bundle_path)
-        model = training_bundle.get("model")
-        for name, scores in getattr(model, "cv_results", {}).items():
-            classification[name] = {"roc_auc": round(float(np.mean(scores)), 4)}
+    classification_path = model_path.parent / "food_classification_metrics.json"
+    if not classification_path.exists():
+        raise MLServiceError(
+            f"Classification metrics not found at {classification_path.resolve()}. "
+            "Run post_harvest_data_engine train_food_model first."
+        )
+    classification = json.loads(classification_path.read_text())
+    classification = {
+        name: {"roc_auc": round(float(metrics["roc_auc"]), 4)}
+        for name, metrics in classification.items()
+    }
 
     # Deterministic demonstration: static shortest-time route versus the
     # spoilage-aware route used by the data engine's evaluation benchmark.
