@@ -33,6 +33,8 @@ class ProduceService:
         harvest_date,
         storage_location: str,
         commodity_class: CommodityClass = CommodityClass.PERISHABLE,
+        storage_temperature_c: float | None = None,
+        storage_pressure_psi: float | None = None,
     ) -> ProduceItem:
         self._ensure_can_manage(actor)
         return await self._produce.create(
@@ -46,6 +48,8 @@ class ProduceService:
             commodity_class=commodity_class,
             cooperative_id=actor.id,
             status=ProduceStatus.AVAILABLE,
+            storage_temperature_c=storage_temperature_c,
+            storage_pressure_psi=storage_pressure_psi,
         )
 
     async def update_produce(
@@ -62,6 +66,12 @@ class ProduceService:
         storage_location: str | None = None,
         commodity_class: CommodityClass | None = None,
         status: ProduceStatus | None = None,
+        storage_temperature_c: float | None = None,
+        storage_pressure_psi: float | None = None,
+        storage_spoilage_probability: float | None = None,
+        storage_risk_tier: str | None = None,
+        storage_spoil_prediction: bool | None = None,
+        estimated_shelf_life_days: float | None = None,
     ) -> ProduceItem:
         self._ensure_can_manage(actor)
         updated = await self._produce.update(
@@ -75,6 +85,12 @@ class ProduceService:
             storage_location=storage_location,
             commodity_class=commodity_class,
             status=status,
+            storage_temperature_c=storage_temperature_c,
+            storage_pressure_psi=storage_pressure_psi,
+            storage_spoilage_probability=storage_spoilage_probability,
+            storage_risk_tier=storage_risk_tier,
+            storage_spoil_prediction=storage_spoil_prediction,
+            estimated_shelf_life_days=estimated_shelf_life_days,
         )
         if not updated:
             raise NotFoundError("Produce item not found.")

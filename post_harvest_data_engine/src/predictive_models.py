@@ -55,6 +55,7 @@ class PredictiveModels:
         # Prediction features (exclude the column used for the target)
         feature_cols = [
             'Temperature_C', 'Pressure_PSI', 'Transit_Duration_Hr',
+            'Storage_Age_Hours', 'Storage_Temperature_C', 'Storage_Pressure_PSI',
             'baseline_loss_pct', 'Thermal_Heat_Exposure',
             'Distance_To_Market_Km', 'price_per_kg',
         ]
@@ -113,6 +114,7 @@ class PredictiveModels:
 
         feature_cols = [
             "Temperature_C", "Pressure_PSI", "Transit_Duration_Hr",
+            "Storage_Age_Hours", "Storage_Temperature_C", "Storage_Pressure_PSI",
             "baseline_loss_pct", "Thermal_Heat_Exposure",
             "Distance_To_Market_Km", "price_per_kg",
         ]
@@ -273,6 +275,11 @@ def _build_realistic_spoilage(df, seed: int = 42):
     linear_thermal = np.maximum(temp - base, 0.0) * dur
     df['Thermal_Heat_Exposure'] = linear_thermal
 
+    storage_age = df.get('Storage_Age_Hours', pd.Series(0.0, index=df.index)).to_numpy()
+    storage_temp = df.get('Storage_Temperature_C', pd.Series(22.0, index=df.index)).to_numpy()
+    storage_pressure = df.get('Storage_Pressure_PSI', pd.Series(30.0, index=df.index)).to_numpy()
+    storage_heat = np.maximum(storage_temp - 18.0, 0.0) * (storage_age / 24.0)
+
     # Per-crop baseline frailty (higher for more perishable crops), from the
     # single source of truth in config/crops.yaml.
     crop_base = SPOILAGE_FRAILTY
@@ -283,7 +290,15 @@ def _build_realistic_spoilage(df, seed: int = 42):
     handling = rng.normal(0, 3.0, size=len(df))
     meas_noise = rng.normal(0, 3.0, size=len(df))
 
-    df['estimated_loss_pct'] = (base_vals + 0.35 * linear_thermal + handling + meas_noise)
+    df['estimated_loss_pct'] = (
+        base_vals
+        + 0.35 * linear_thermal
+        + 0.12 * storage_age
+        + 0.25 * storage_heat
+        + np.maximum(storage_pressure - 30.0, 0.0) * 0.5
+        + handling
+        + meas_noise
+    )
     df['estimated_loss_pct'] = df['estimated_loss_pct'].clip(0, 60)
     return df
 

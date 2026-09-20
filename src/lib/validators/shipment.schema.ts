@@ -14,6 +14,7 @@ export const createShipmentSchema = z.object({
   pressurePsi: z.coerce.number().optional(),
   baselineLossPct: z.coerce.number().optional(),
   quantityKg: z.coerce.number().optional(),
+  produceId: z.string().optional(),
 });
 
 export type CreateShipmentFormValues = z.infer<typeof createShipmentSchema>;

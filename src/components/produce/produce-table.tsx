@@ -24,6 +24,7 @@ export function ProduceTable({ produceList }: { produceList: Produce[] }) {
             <TableHead>Price (KES/kg)</TableHead>
             <TableHead>Grade</TableHead>
             <TableHead>Harvested</TableHead>
+            <TableHead>Storage Risk</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -38,6 +39,11 @@ export function ProduceTable({ produceList }: { produceList: Produce[] }) {
               <TableCell className="text-right">{item.unitPrice.toLocaleString()}</TableCell>
               <TableCell>{item.qualityGrade}</TableCell>
               <TableCell>{formatDate(item.harvestDate)}</TableCell>
+              <TableCell>
+                {item.storageSpoilageProbability !== undefined
+                  ? `${(item.storageSpoilageProbability * 100).toFixed(1)}%${item.estimatedShelfLifeDays !== undefined ? ` · ${item.estimatedShelfLifeDays}d left` : ""}`
+                  : "Pending"}
+              </TableCell>
               <TableCell><ProduceStatusBadge status={item.status} /></TableCell>
               <TableCell className="text-right">
                 <RoleGate allowed={["ADMINISTRATOR", "LOGISTICS_MANAGER", "FARMER_COOPERATIVE"]}>

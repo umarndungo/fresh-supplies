@@ -12,6 +12,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { createProduceSchema, type CreateProduceFormValues } from "@/lib/validators/produce.schema";
 import { useCreateProduce, useUpdateProduce } from "@/hooks/use-produce";
 import type { Produce, UpdateProducePayload } from "@/types/produce.types";
+import { predictStorageSpoilageRequest } from "@/lib/api/storage-ml.api";
 
 interface CreateProduceDialogProps {
   initialData?: Produce | null;
@@ -46,7 +47,21 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
       if (isEditing && initialData) {
         await updateProduce.mutateAsync({ id: initialData.id, payload: values as UpdateProducePayload });
       } else {
-        await createProduce.mutateAsync(values);
+        const created = await createProduce.mutateAsync(values);
+        try {
+          const storageRisk = await predictStorageSpoilageRequest(created);
+          await updateProduce.mutateAsync({
+            id: created.id,
+            payload: {
+              storageSpoilageProbability: storageRisk.storage_spoilage_probability,
+              storageRiskTier: storageRisk.storage_risk_tier,
+              storageSpoilPrediction: storageRisk.storage_spoil_prediction,
+              estimatedShelfLifeDays: storageRisk.estimated_shelf_life_days,
+            },
+          });
+        } catch {
+          // The lot remains saved even if the optional ML assessment is unavailable.
+        }
       }
       form.reset();
       setOpen(false);
@@ -204,6 +219,32 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
                 </FormItem>
               )}
             />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="storageTemperatureC"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Storage temperature (°C)</FormLabel>
+                    <FormControl><Input type="number" step="any" placeholder="22" {...field} /></FormControl>
+                    <FormDescription>Used to estimate storage spoilage risk.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="storagePressurePsi"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Storage pressure (PSI)</FormLabel>
+                    <FormControl><Input type="number" step="any" placeholder="30" {...field} /></FormControl>
+                    <FormDescription>Packaging or stacking pressure.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
             <DialogFooter>
               {isEditing && (
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
@@ -238,6 +279,8 @@ export function EditProduceTrigger({ produce, onSuccess }: { produce: Produce; o
       harvestDate: produce.harvestDate.split("T")[0],
       storageLocation: produce.storageLocation,
       commodityClass: produce.commodityClass,
+      storageTemperatureC: produce.storageTemperatureC,
+      storagePressurePsi: produce.storagePressurePsi,
     },
   });
 

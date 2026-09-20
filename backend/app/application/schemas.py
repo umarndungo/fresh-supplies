@@ -84,6 +84,10 @@ class ShipmentOut(BaseModel):
     risk_tier: str | None = Field(default=None, serialization_alias="riskTier")
     spoil_prediction: bool | None = Field(default=None, serialization_alias="spoilPrediction")
     market_recommendations: list[dict] | None = Field(default=None, serialization_alias="marketRecommendations")
+    produce_id: UUID | None = Field(default=None, serialization_alias="produceId")
+    harvest_date_snapshot: datetime | None = Field(default=None, serialization_alias="harvestDateSnapshot")
+    storage_spoilage_probability_snapshot: float | None = Field(default=None, serialization_alias="storageSpoilageProbabilitySnapshot")
+    estimated_shelf_life_days_snapshot: float | None = Field(default=None, serialization_alias="estimatedShelfLifeDaysSnapshot")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
@@ -105,6 +109,10 @@ class CreateShipmentRequest(BaseModel):
     pressure_psi: float | None = Field(default=None, alias="pressurePsi")
     baseline_loss_pct: float | None = Field(default=None, alias="baselineLossPct")
     quantity_kg: float | None = Field(default=None, alias="quantityKg")
+    produce_id: UUID | None = Field(default=None, alias="produceId")
+    harvest_date_snapshot: datetime | None = Field(default=None, alias="harvestDateSnapshot")
+    storage_spoilage_probability_snapshot: float | None = Field(default=None, alias="storageSpoilageProbabilitySnapshot", ge=0, le=1)
+    estimated_shelf_life_days_snapshot: float | None = Field(default=None, alias="estimatedShelfLifeDaysSnapshot", ge=0)
 
     model_config = {"populate_by_name": True}
 
@@ -178,6 +186,10 @@ class UpdateShipmentRequest(BaseModel):
     risk_tier: str | None = Field(default=None, alias="riskTier")
     spoil_prediction: bool | None = Field(default=None, alias="spoilPrediction")
     market_recommendations: list[dict] | None = Field(default=None, alias="marketRecommendations")
+    produce_id: UUID | None = Field(default=None, alias="produceId")
+    harvest_date_snapshot: datetime | None = Field(default=None, alias="harvestDateSnapshot")
+    storage_spoilage_probability_snapshot: float | None = Field(default=None, alias="storageSpoilageProbabilitySnapshot", ge=0, le=1)
+    estimated_shelf_life_days_snapshot: float | None = Field(default=None, alias="estimatedShelfLifeDaysSnapshot", ge=0)
 
     model_config = {"populate_by_name": True}
 
@@ -194,6 +206,12 @@ class ProduceOut(BaseModel):
     commodity_class: CommodityClass = Field(serialization_alias="commodityClass")
     cooperative_id: UUID = Field(serialization_alias="cooperativeId")
     status: ProduceStatus
+    storage_temperature_c: float | None = Field(default=None, serialization_alias="storageTemperatureC")
+    storage_pressure_psi: float | None = Field(default=None, serialization_alias="storagePressurePsi")
+    storage_spoilage_probability: float | None = Field(default=None, serialization_alias="storageSpoilageProbability")
+    storage_risk_tier: str | None = Field(default=None, serialization_alias="storageRiskTier")
+    storage_spoil_prediction: bool | None = Field(default=None, serialization_alias="storageSpoilPrediction")
+    estimated_shelf_life_days: float | None = Field(default=None, serialization_alias="estimatedShelfLifeDays")
     created_at: datetime = Field(serialization_alias="createdAt")
     updated_at: datetime = Field(serialization_alias="updatedAt")
 
@@ -209,6 +227,8 @@ class CreateProduceRequest(BaseModel):
     harvest_date: datetime = Field(alias="harvestDate")
     storage_location: str = Field(alias="storageLocation", min_length=2)
     commodity_class: CommodityClass = Field(default=CommodityClass.PERISHABLE, alias="commodityClass")
+    storage_temperature_c: float | None = Field(default=None, alias="storageTemperatureC", ge=-20, le=60)
+    storage_pressure_psi: float | None = Field(default=None, alias="storagePressurePsi", ge=0)
 
     model_config = {"populate_by_name": True}
 
@@ -223,5 +243,11 @@ class UpdateProduceRequest(BaseModel):
     storage_location: str | None = Field(default=None, alias="storageLocation", min_length=2)
     commodity_class: CommodityClass | None = Field(default=None, alias="commodityClass")
     status: ProduceStatus | None = None
+    storage_temperature_c: float | None = Field(default=None, alias="storageTemperatureC", ge=-20, le=60)
+    storage_pressure_psi: float | None = Field(default=None, alias="storagePressurePsi", ge=0)
+    storage_spoilage_probability: float | None = Field(default=None, alias="storageSpoilageProbability", ge=0, le=1)
+    storage_risk_tier: str | None = Field(default=None, alias="storageRiskTier")
+    storage_spoil_prediction: bool | None = Field(default=None, alias="storageSpoilPrediction")
+    estimated_shelf_life_days: float | None = Field(default=None, alias="estimatedShelfLifeDays", ge=0)
 
     model_config = {"populate_by_name": True}

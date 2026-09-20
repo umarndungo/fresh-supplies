@@ -7,11 +7,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogBody, DialogTrigger } from "@/components/ui/dialog";
 import { createShipmentSchema } from "@/lib/validators/shipment.schema";
 import type { CreateShipmentPayload } from "@/types/shipment.types";
 import { useCreateShipment } from "@/hooks/use-shipments";
+import { useProduce } from "@/hooks/use-produce";
+import type { Produce } from "@/types/produce.types";
 import { LocationPicker } from "@/components/map/location-picker";
 
 type CreateShipmentFormInput = {
@@ -27,6 +30,7 @@ type CreateShipmentFormInput = {
   transitDurationHr?: string;
   pressurePsi?: string;
   quantityKg?: string;
+  produceId?: string;
 };
 
 export function CreateShipmentDialog() {
@@ -34,6 +38,7 @@ export function CreateShipmentDialog() {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const searchParams = useSearchParams();
   const createShipment = useCreateShipment();
+  const { data: produceList = [] } = useProduce();
   const form = useForm<CreateShipmentFormInput>({
     resolver: zodResolver(createShipmentSchema),
     defaultValues: {
@@ -49,6 +54,7 @@ export function CreateShipmentDialog() {
       transitDurationHr: "",
       pressurePsi: "",
       quantityKg: "",
+      produceId: "",
     },
   });
 
@@ -65,10 +71,11 @@ export function CreateShipmentDialog() {
   }, [searchParams]);
 
   async function onSubmit(values: CreateShipmentFormInput) {
+    const selectedProduce = produceList.find((item) => item.id === values.produceId);
     const payload: CreateShipmentPayload = {
       origin: values.origin,
       destination: values.destination,
-      produceType: values.produceType,
+      produceType: selectedProduce?.name ?? values.produceType,
       scheduledDate: values.scheduledDate,
       originLatitude: values.originLatitude,
       originLongitude: values.originLongitude,
@@ -77,7 +84,11 @@ export function CreateShipmentDialog() {
       temperatureC: values.temperatureC ? Number(values.temperatureC) : undefined,
       transitDurationHr: values.transitDurationHr ? Number(values.transitDurationHr) : undefined,
       pressurePsi: values.pressurePsi ? Number(values.pressurePsi) : undefined,
-      quantityKg: values.quantityKg ? Number(values.quantityKg) : undefined,
+      quantityKg: selectedProduce?.quantityKg ?? (values.quantityKg ? Number(values.quantityKg) : undefined),
+      produceId: selectedProduce?.id,
+      harvestDateSnapshot: selectedProduce?.harvestDate,
+      storageSpoilageProbabilitySnapshot: selectedProduce?.storageSpoilageProbability,
+      estimatedShelfLifeDaysSnapshot: selectedProduce?.estimatedShelfLifeDays,
     };
     try {
       await createShipment.mutateAsync(payload);
@@ -140,6 +151,34 @@ export function CreateShipmentDialog() {
               )}
             />
             <div className="grid gap-4 sm:grid-cols-2">
+              <FormField
+                control={form.control}
+                name="produceId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Produce lot</FormLabel>
+                    <Select value={field.value} onValueChange={(value) => {
+                      field.onChange(value);
+                      const selected = produceList.find((item) => item.id === value);
+                      if (selected) {
+                        form.setValue("produceType", selected.name);
+                        form.setValue("quantityKg", String(selected.quantityKg));
+                      }
+                    }}>
+                      <FormControl><SelectTrigger><SelectValue placeholder="Select a produce lot" /></SelectTrigger></FormControl>
+                      <SelectContent>
+                        {produceList.map((item: Produce) => (
+                          <SelectItem key={item.id} value={item.id}>
+                            {item.name} · {item.quantityKg.toLocaleString()} kg · {item.storageSpoilageProbability !== undefined ? `${(item.storageSpoilageProbability * 100).toFixed(1)}% risk` : "risk pending"}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormDescription>Shipment predictions inherit this lot&apos;s harvest and storage state.</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="produceType"

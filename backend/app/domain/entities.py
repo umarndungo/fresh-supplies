@@ -92,6 +92,10 @@ class Shipment:
     risk_tier: str | None = None
     spoil_prediction: bool | None = None
     market_recommendations: list[dict] | None = None
+    produce_id: UUID | None = None
+    harvest_date_snapshot: datetime | None = None
+    storage_spoilage_probability_snapshot: float | None = None
+    estimated_shelf_life_days_snapshot: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,6 +113,12 @@ class ProduceItem:
     status: ProduceStatus
     created_at: datetime
     updated_at: datetime
+    storage_temperature_c: float | None = None
+    storage_pressure_psi: float | None = None
+    storage_spoilage_probability: float | None = None
+    storage_risk_tier: str | None = None
+    storage_spoil_prediction: bool | None = None
+    estimated_shelf_life_days: float | None = None
 
 
 @dataclass(frozen=True, slots=True)

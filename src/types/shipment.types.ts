@@ -29,6 +29,10 @@ export interface Shipment {
   riskTier?: RiskTier;
   spoilPrediction?: boolean;
   marketRecommendations?: import("@/types/ml.types").MarketRecommendationOut[];
+  produceId?: string;
+  harvestDateSnapshot?: string;
+  storageSpoilageProbabilitySnapshot?: number;
+  estimatedShelfLifeDaysSnapshot?: number;
 }
 
 export interface CreateShipmentPayload {
@@ -48,6 +52,10 @@ export interface CreateShipmentPayload {
   pressurePsi?: number;
   baselineLossPct?: number;
   quantityKg?: number;
+  produceId?: string;
+  harvestDateSnapshot?: string;
+  storageSpoilageProbabilitySnapshot?: number;
+  estimatedShelfLifeDaysSnapshot?: number;
 }
 
 export interface UpdateShipmentPayload {
