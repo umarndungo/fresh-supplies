@@ -13,6 +13,12 @@ export interface Produce {
   commodityClass: CommodityClass;
   cooperativeId: string;
   status: ProduceStatus;
+  storageTemperatureC?: number;
+  storagePressurePsi?: number;
+  storageSpoilageProbability?: number;
+  storageRiskTier?: string;
+  storageSpoilPrediction?: boolean;
+  estimatedShelfLifeDays?: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -26,6 +32,8 @@ export interface CreateProducePayload {
   harvestDate: string;
   storageLocation: string;
   commodityClass: CommodityClass;
+  storageTemperatureC?: number;
+  storagePressurePsi?: number;
 }
 
 export interface UpdateProducePayload {
@@ -38,4 +46,10 @@ export interface UpdateProducePayload {
   storageLocation?: string;
   commodityClass?: CommodityClass;
   status?: ProduceStatus;
+  storageTemperatureC?: number;
+  storagePressurePsi?: number;
+  storageSpoilageProbability?: number;
+  storageRiskTier?: string;
+  storageSpoilPrediction?: boolean;
+  estimatedShelfLifeDays?: number;
 }

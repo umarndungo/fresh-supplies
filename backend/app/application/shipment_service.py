@@ -40,6 +40,10 @@ class ShipmentService:
         pressure_psi: float | None = None,
         baseline_loss_pct: float | None = None,
         quantity_kg: float | None = None,
+        produce_id=None,
+        harvest_date_snapshot=None,
+        storage_spoilage_probability_snapshot: float | None = None,
+        estimated_shelf_life_days_snapshot: float | None = None,
     ) -> Shipment:
         self._ensure_can_manage(actor)
         return await self._shipments.create(
@@ -59,6 +63,10 @@ class ShipmentService:
             pressure_psi=pressure_psi,
             baseline_loss_pct=baseline_loss_pct,
             quantity_kg=quantity_kg,
+            produce_id=produce_id,
+            harvest_date_snapshot=harvest_date_snapshot,
+            storage_spoilage_probability_snapshot=storage_spoilage_probability_snapshot,
+            estimated_shelf_life_days_snapshot=estimated_shelf_life_days_snapshot,
         )
 
     async def update_shipment(
@@ -72,6 +80,10 @@ class ShipmentService:
         risk_tier: str | None = None,
         spoil_prediction: bool | None = None,
         market_recommendations: list[dict] | None = None,
+        produce_id=None,
+        harvest_date_snapshot=None,
+        storage_spoilage_probability_snapshot: float | None = None,
+        estimated_shelf_life_days_snapshot: float | None = None,
     ) -> Shipment:
         self._ensure_can_manage(actor)
         updated = await self._shipments.update(
@@ -82,6 +94,10 @@ class ShipmentService:
             risk_tier=risk_tier,
             spoil_prediction=spoil_prediction,
             market_recommendations=market_recommendations,
+            produce_id=produce_id,
+            harvest_date_snapshot=harvest_date_snapshot,
+            storage_spoilage_probability_snapshot=storage_spoilage_probability_snapshot,
+            estimated_shelf_life_days_snapshot=estimated_shelf_life_days_snapshot,
         )
         if not updated:
             raise NotFoundError("Shipment not found.")

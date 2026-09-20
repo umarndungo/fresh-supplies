@@ -126,11 +126,16 @@ def _feature_vector(feature_names, shipment: dict, distance_km: float, price: fl
     )
     idx = {name: i for i, name in enumerate(feature_names)}
     vec = np.zeros(len(feature_names))
+    storage_loss = float(shipment.get("storage_spoilage_probability", 0.0)) * 100.0
+    age_loss = min(50.0, float(shipment.get("harvest_age_hours", 0.0)) / 24.0 * 2.5)
     mapping = {
         "Temperature_C": shipment.get("Temperature_C", 25.0),
         "Pressure_PSI": shipment.get("Pressure_PSI", 30.0),
         "Transit_Duration_Hr": shipment.get("Transit_Duration_Hr", 4.0),
-        "baseline_loss_pct": shipment.get("baseline_loss_pct", 10.0),
+        "Storage_Age_Hours": shipment.get("harvest_age_hours", 0.0),
+        "Storage_Temperature_C": shipment.get("storage_temperature_c", 22.0),
+        "Storage_Pressure_PSI": shipment.get("storage_pressure_psi", 30.0),
+        "baseline_loss_pct": min(100.0, shipment.get("baseline_loss_pct", 10.0) + storage_loss + age_loss),
         "Thermal_Heat_Exposure": thermal,
         "Distance_To_Market_Km": distance_km,
         "price_per_kg": price,
@@ -152,12 +157,53 @@ def predict_spoilage(shipment: dict) -> dict:
     vec = _feature_vector(feature_names, shipment, distance_km, price)
     frame = pd.DataFrame([vec], columns=feature_names)
 
-    proba = float(model.predict_proba(frame)[0][1])
-    tier = "CRITICAL" if proba >= 0.6 else ("AT_RISK" if proba >= 0.35 else "FRESH")
+    transit_proba = float(model.predict_proba(frame)[0][1])
+    storage_proba = float(shipment.get("storage_spoilage_probability", 0.0))
+    total_proba = 1.0 - (1.0 - storage_proba) * (1.0 - transit_proba)
+    tier = "CRITICAL" if total_proba >= 0.6 else ("AT_RISK" if total_proba >= 0.35 else "FRESH")
     return {
-        "spoilage_probability": round(proba, 4),
+        "spoilage_probability": round(total_proba, 4),
         "risk_tier": tier,
-        "spoil_prediction": bool(proba >= 0.5),
+        "spoil_prediction": bool(total_proba >= 0.5),
+        "transit_spoilage_probability": round(transit_proba, 4),
+        "storage_spoilage_probability": round(storage_proba, 4),
+        "total_spoilage_probability": round(total_proba, 4),
+        "estimated_shelf_life_days": shipment.get("estimated_shelf_life_days"),
+    }
+
+
+def predict_storage_spoilage(produce: dict) -> dict:
+    """Estimate current storage risk from harvest age and storage conditions."""
+    from datetime import datetime, timezone
+
+    try:
+        harvest_date = datetime.fromisoformat(produce["harvest_date"].replace("Z", "+00:00"))
+    except (KeyError, ValueError) as exc:
+        raise MLServiceError("harvest_date must be a valid ISO timestamp") from exc
+    if harvest_date.tzinfo is None:
+        harvest_date = harvest_date.replace(tzinfo=timezone.utc)
+
+    age_hours = max(0.0, (datetime.now(timezone.utc) - harvest_date).total_seconds() / 3600)
+    age_days = age_hours / 24
+    # Convert elapsed storage exposure into the model's existing loss feature.
+    baseline_loss = min(95.0, age_days * 2.5)
+    result = predict_spoilage(
+        {
+            "Temperature_C": produce.get("storage_temperature_c", 25.0),
+            "Pressure_PSI": produce.get("storage_pressure_psi", 30.0),
+            "Transit_Duration_Hr": 0.0,
+            "baseline_loss_pct": baseline_loss,
+            "quantity_kg": produce.get("quantity_kg", 100.0),
+        }
+    )
+    max_shelf_life_days = 7.0 if produce.get("quality_grade", "A").upper() in {"A", "GRADE 1"} else 5.0
+    estimated_shelf_life_days = max(0.0, round(max_shelf_life_days - age_days - result["spoilage_probability"] * 2, 1))
+    return {
+        "storage_age_hours": round(age_hours, 1),
+        "storage_spoilage_probability": result["spoilage_probability"],
+        "storage_risk_tier": result["risk_tier"],
+        "storage_spoil_prediction": result["spoil_prediction"],
+        "estimated_shelf_life_days": estimated_shelf_life_days,
     }
 
 
@@ -219,7 +265,9 @@ def recommend_market(shipment: dict, top_n: int = 5) -> list:
             feature_names, shipment, distance_km, mkt["price_per_kg"]
         )
         frame = pd.DataFrame([vec], columns=feature_names)
-        proba = float(model.predict_proba(frame)[0][1])
+        transit_proba = float(model.predict_proba(frame)[0][1])
+        storage_proba = float(shipment.get("storage_spoilage_probability", 0.0))
+        proba = 1.0 - (1.0 - storage_proba) * (1.0 - transit_proba)
         revenue = quantity_kg * mkt["price_per_kg"] * (1.0 - proba)
         rankings.append(
             {
@@ -230,6 +278,9 @@ def recommend_market(shipment: dict, top_n: int = 5) -> list:
                 "duration_minutes": route.duration_minutes,
                 "price_per_kg": mkt["price_per_kg"],
                 "spoilage_probability": round(proba, 3),
+                "transit_spoilage_probability": round(transit_proba, 3),
+                "storage_spoilage_probability": round(storage_proba, 3),
+                "total_spoilage_probability": round(proba, 3),
                 "revenue_retained": round(revenue, 2),
                 "route_provider": route.provider,
                 "route_estimated": route.estimated,

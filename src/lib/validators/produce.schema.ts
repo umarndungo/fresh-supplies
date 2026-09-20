@@ -9,6 +9,8 @@ export const createProduceSchema = z.object({
   harvestDate: z.string().min(1, "Select harvest date"),
   storageLocation: z.string().min(2, "Enter storage location"),
   commodityClass: z.enum(["PERISHABLE", "STAPLE"]),
+  storageTemperatureC: z.coerce.number().min(-20).max(60).optional(),
+  storagePressurePsi: z.coerce.number().min(0).optional(),
 });
 
 export type CreateProduceFormValues = z.infer<typeof createProduceSchema>;

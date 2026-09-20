@@ -34,6 +34,9 @@ const ShipmentMap = dynamic(
 );
 
 function buildSpoilageRequest(shipment: Shipment) {
+  const harvestAgeHours = shipment.harvestDateSnapshot
+    ? Math.max(0, (Date.now() - new Date(shipment.harvestDateSnapshot).getTime()) / 3_600_000)
+    : 0;
   return {
     crop_type: shipment.produceType,
     latitude: shipment.originLatitude ?? -1.2921,
@@ -43,6 +46,9 @@ function buildSpoilageRequest(shipment: Shipment) {
     Pressure_PSI: shipment.pressurePsi ?? 30,
     baseline_loss_pct: shipment.baselineLossPct ?? 10,
     quantity_kg: shipment.quantityKg ?? 100,
+    harvest_age_hours: harvestAgeHours,
+    storage_spoilage_probability: shipment.storageSpoilageProbabilitySnapshot ?? 0,
+    estimated_shelf_life_days: shipment.estimatedShelfLifeDaysSnapshot,
   };
 }
 
@@ -518,6 +524,18 @@ export function ShipmentDetailView({ id }: { id: string }) {
               <div>
                 <dt className="text-sm text-muted-foreground">Quantity (kg)</dt>
                 <dd>{shipment.quantityKg ?? "Not set"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Harvest date snapshot</dt>
+                <dd>{shipment.harvestDateSnapshot ? formatDate(shipment.harvestDateSnapshot) : "Not linked"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Storage spoilage risk</dt>
+                <dd>{shipment.storageSpoilageProbabilitySnapshot !== undefined ? `${(shipment.storageSpoilageProbabilitySnapshot * 100).toFixed(1)}%` : "Not assessed"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Shelf life at scheduling</dt>
+                <dd>{shipment.estimatedShelfLifeDaysSnapshot !== undefined ? `${shipment.estimatedShelfLifeDaysSnapshot} days` : "Not assessed"}</dd>
               </div>
             </dl>
             {!shipment.originLatitude && (

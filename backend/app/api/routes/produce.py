@@ -35,6 +35,8 @@ async def create_produce(
         harvest_date=payload.harvest_date,
         storage_location=payload.storage_location,
         commodity_class=payload.commodity_class,
+        storage_temperature_c=payload.storage_temperature_c,
+        storage_pressure_psi=payload.storage_pressure_psi,
     )
     return {"data": ProduceOut.model_validate(produce).model_dump(by_alias=True)}
 
@@ -68,6 +70,12 @@ async def update_produce(
         storage_location=payload.storage_location,
         commodity_class=payload.commodity_class,
         status=payload.status,
+        storage_temperature_c=payload.storage_temperature_c,
+        storage_pressure_psi=payload.storage_pressure_psi,
+        storage_spoilage_probability=payload.storage_spoilage_probability,
+        storage_risk_tier=payload.storage_risk_tier,
+        storage_spoil_prediction=payload.storage_spoil_prediction,
+        estimated_shelf_life_days=payload.estimated_shelf_life_days,
     )
     return {"data": ProduceOut.model_validate(produce).model_dump(by_alias=True)}
 

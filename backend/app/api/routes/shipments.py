@@ -40,6 +40,10 @@ async def create_shipment(
         pressure_psi=payload.pressure_psi,
         baseline_loss_pct=payload.baseline_loss_pct,
         quantity_kg=payload.quantity_kg,
+        produce_id=payload.produce_id,
+        harvest_date_snapshot=payload.harvest_date_snapshot,
+        storage_spoilage_probability_snapshot=payload.storage_spoilage_probability_snapshot,
+        estimated_shelf_life_days_snapshot=payload.estimated_shelf_life_days_snapshot,
     )
     return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}
 
@@ -70,6 +74,10 @@ async def update_shipment(
         risk_tier=payload.risk_tier,
         spoil_prediction=payload.spoil_prediction,
         market_recommendations=payload.market_recommendations,
+        produce_id=payload.produce_id,
+        harvest_date_snapshot=payload.harvest_date_snapshot,
+        storage_spoilage_probability_snapshot=payload.storage_spoilage_probability_snapshot,
+        estimated_shelf_life_days_snapshot=payload.estimated_shelf_life_days_snapshot,
     )
     return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}
 

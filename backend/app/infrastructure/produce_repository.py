@@ -21,6 +21,12 @@ def _to_entity(model: ProduceModel) -> ProduceItem:
         commodity_class=model.commodity_class,
         cooperative_id=model.cooperative_id,
         status=model.status,
+        storage_temperature_c=model.storage_temperature_c,
+        storage_pressure_psi=model.storage_pressure_psi,
+        storage_spoilage_probability=model.storage_spoilage_probability,
+        storage_risk_tier=model.storage_risk_tier,
+        storage_spoil_prediction=model.storage_spoil_prediction,
+        estimated_shelf_life_days=model.estimated_shelf_life_days,
         created_at=model.created_at,
         updated_at=model.updated_at,
     )
@@ -51,6 +57,8 @@ class SqlAlchemyProduceRepository(ProduceRepository):
         commodity_class: CommodityClass,
         cooperative_id: UUID,
         status: ProduceStatus,
+        storage_temperature_c: float | None = None,
+        storage_pressure_psi: float | None = None,
     ) -> ProduceItem:
         model = ProduceModel(
             name=name,
@@ -63,6 +71,8 @@ class SqlAlchemyProduceRepository(ProduceRepository):
             commodity_class=commodity_class,
             cooperative_id=cooperative_id,
             status=status,
+            storage_temperature_c=storage_temperature_c,
+            storage_pressure_psi=storage_pressure_psi,
         )
         self._session.add(model)
         await self._session.commit()
@@ -82,6 +92,12 @@ class SqlAlchemyProduceRepository(ProduceRepository):
         storage_location: str | None = None,
         commodity_class: CommodityClass | None = None,
         status: ProduceStatus | None = None,
+        storage_temperature_c: float | None = None,
+        storage_pressure_psi: float | None = None,
+        storage_spoilage_probability: float | None = None,
+        storage_risk_tier: str | None = None,
+        storage_spoil_prediction: bool | None = None,
+        estimated_shelf_life_days: float | None = None,
     ) -> ProduceItem | None:
         model = await self._session.get(ProduceModel, produce_id)
         if not model:
@@ -104,6 +120,18 @@ class SqlAlchemyProduceRepository(ProduceRepository):
             model.commodity_class = commodity_class
         if status is not None:
             model.status = status
+        if storage_temperature_c is not None:
+            model.storage_temperature_c = storage_temperature_c
+        if storage_pressure_psi is not None:
+            model.storage_pressure_psi = storage_pressure_psi
+        if storage_spoilage_probability is not None:
+            model.storage_spoilage_probability = storage_spoilage_probability
+        if storage_risk_tier is not None:
+            model.storage_risk_tier = storage_risk_tier
+        if storage_spoil_prediction is not None:
+            model.storage_spoil_prediction = storage_spoil_prediction
+        if estimated_shelf_life_days is not None:
+            model.estimated_shelf_life_days = estimated_shelf_life_days
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)
