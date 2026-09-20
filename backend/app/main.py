@@ -33,6 +33,11 @@ async def lifespan(app: FastAPI):
 app = FastAPI(title=settings.APP_NAME, version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(RequestLoggingMiddleware)
+# Only load-bearing for local dev (frontend/backend on different ports) and
+# any direct cross-origin caller (e.g. Swagger UI hosted elsewhere). The
+# deployed site no longer needs this: Caddy now serves frontend and backend
+# under one origin (see Caddyfile), so the browser's own calls are
+# same-origin and never hit this middleware at all.
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_ORIGIN],
