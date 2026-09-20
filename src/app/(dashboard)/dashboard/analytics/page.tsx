@@ -53,7 +53,10 @@ export default function AnalyticsPage() {
     );
   }
 
-  if ((user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") && shipments?.length === 0) {
+  if (
+    (user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") &&
+    user.hasCooperativeAccess === false
+  ) {
     return <div className="space-y-6"><PageHeader title="Analytics" description="Spoilage trends, revenue analysis, and risk distribution" /><EmptyState icon={ShieldAlert} title="No cooperatives assigned yet — ask an administrator to grant you access" /></div>;
   }
 

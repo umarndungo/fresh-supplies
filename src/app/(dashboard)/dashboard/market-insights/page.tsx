@@ -38,7 +38,10 @@ export default function MarketInsightsPage() {
   const { data: produce, isLoading: isProduceLoading } = useProduce();
   const { user } = useAuthContext();
 
-  if (!isProduceLoading && (user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") && produce?.length === 0) {
+  if (
+    (user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") &&
+    user.hasCooperativeAccess === false
+  ) {
     return <div className="space-y-6"><PageHeader title="Market Insights" description="Current calibrated market prices across 10 Kenyan wholesale markets." /><EmptyState icon={ShieldAlert} title="No cooperatives assigned yet — ask an administrator to grant you access" /></div>;
   }
 
