@@ -95,8 +95,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       // Call logout endpoint to delete the httpOnly refresh token cookie
       try {
         await logoutRequest();
-      } catch {
-        // Ignore errors - we just want to clear the cookie
+      } catch (error) {
+        // Ignore errors - we just want to clear the cookie. Still worth a
+        // console line: this is the only signal that server-side cleanup
+        // didn't happen during a forced session expiry.
+        console.warn("Failed to clear server-side session during expiry:", error);
       }
       // Public pages can remain visible when an optional session expires. Only
       // protected dashboard routes should send the user to login.

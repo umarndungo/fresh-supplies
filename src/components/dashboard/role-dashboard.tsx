@@ -178,8 +178,19 @@ export function RoleDashboard() {
   const role = user?.role ?? "ADMINISTRATOR";
   const config = ROLE_CONFIG[role];
 
-  const { data: shipments, isLoading: isShipmentsLoading } = useShipments({ enabled: role !== "ADMINISTRATOR" });
-  const { data: produce, isLoading: isProduceLoading } = useProduce({ enabled: role !== "ADMINISTRATOR" });
+  const {
+    data: shipments,
+    isLoading: isShipmentsLoading,
+    isError: isShipmentsError,
+    refetch: refetchShipments,
+  } = useShipments({ enabled: role !== "ADMINISTRATOR" });
+  const {
+    data: produce,
+    isLoading: isProduceLoading,
+    isError: isProduceError,
+    refetch: refetchProduce,
+  } = useProduce({ enabled: role !== "ADMINISTRATOR" });
+  const hasLoadError = isShipmentsError || isProduceError;
 
   const totalShipments = shipments?.length ?? 0;
   const inTransitCount = shipments?.filter((s) => s.status === "IN_TRANSIT").length ?? 0;
@@ -240,6 +251,24 @@ export function RoleDashboard() {
         <h1 className="text-2xl font-bold">{config.title}</h1>
         <p className="text-muted-foreground">{config.description}</p>
       </div>
+
+      {hasLoadError && (
+        <div className="flex items-center justify-between gap-4 rounded-md border border-destructive/30 bg-destructive/5 p-4">
+          <p className="text-sm text-muted-foreground">
+            Some of your data couldn&apos;t be loaded — the stats and shipments below may be incomplete.
+          </p>
+          <button
+            type="button"
+            onClick={() => {
+              if (isShipmentsError) void refetchShipments();
+              if (isProduceError) void refetchProduce();
+            }}
+            className="btn btn-outline btn-sm shrink-0"
+          >
+            Retry
+          </button>
+        </div>
+      )}
 
       <div className="flex flex-wrap gap-3">
         {config.primaryActions.map((action) => (

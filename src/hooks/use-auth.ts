@@ -66,6 +66,7 @@ export function useAuth() {
       router.push(ROUTES.login);
     },
     onError: () => {
+      toast.error("Signed out locally — the server may not have cleared your session.");
       router.push(ROUTES.login);
     },
   });

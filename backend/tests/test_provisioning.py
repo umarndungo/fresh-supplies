@@ -11,6 +11,7 @@ from datetime import datetime, timezone
 from uuid import UUID, uuid4
 
 import pytest
+from sqlalchemy.exc import IntegrityError
 
 from app.application.admin_service import AdminService
 from app.application.admin_tenant_service import AdminTenantService
@@ -158,7 +159,7 @@ class FakeOTPService:
 
 def test_admin_create_user_is_passwordless_and_pending():
     users = FakeUserRepository()
-    service = AdminService(users)
+    service = AdminService(users, FakeCooperativeRepository())
 
     user = run(
         service.create_user(
@@ -173,7 +174,7 @@ def test_admin_create_user_is_passwordless_and_pending():
 def test_admin_create_user_duplicate_email_conflict():
     existing = _user(UserRole.MARKET_ANALYST)
     users = FakeUserRepository([existing])
-    service = AdminService(users)
+    service = AdminService(users, FakeCooperativeRepository())
 
     with pytest.raises(ConflictError):
         run(
@@ -184,9 +185,10 @@ def test_admin_create_user_duplicate_email_conflict():
 
 
 def test_admin_create_driver_with_cooperative_id():
-    coop_id = uuid4()
     users = FakeUserRepository()
-    service = AdminService(users)
+    coops = FakeCooperativeRepository()
+    coop = run(coops.create(name="Kirinyaga Coop", created_by=uuid4()))
+    service = AdminService(users, coops)
 
     driver = run(
         service.create_user(
@@ -194,12 +196,46 @@ def test_admin_create_driver_with_cooperative_id():
             full_name="Dan Driver",
             role=UserRole.DRIVER,
             organization_name=None,
-            cooperative_id=coop_id,
+            cooperative_id=coop.id,
         )
     )
 
     assert driver.role == UserRole.DRIVER
-    assert driver.cooperative_id == coop_id
+    assert driver.cooperative_id == coop.id
+
+
+def test_admin_create_user_concurrent_duplicate_email_raises_conflict_not_500():
+    # The get_by_email check is only advisory — two concurrent invites of
+    # the same email can both pass it and race on the real unique
+    # constraint, which surfaces here as an IntegrityError from create_pending.
+    class RacyUserRepository(FakeUserRepository):
+        async def create_pending(self, **kwargs):
+            raise IntegrityError("duplicate email", {}, Exception("uq_users_email"))
+
+    service = AdminService(RacyUserRepository(), FakeCooperativeRepository())
+
+    with pytest.raises(ConflictError):
+        run(
+            service.create_user(
+                email="racer@example.com", full_name="Race Condition", role=UserRole.MARKET_ANALYST, organization_name=None
+            )
+        )
+
+
+def test_admin_create_user_rejects_unknown_cooperative_id():
+    users = FakeUserRepository()
+    service = AdminService(users, FakeCooperativeRepository())
+
+    with pytest.raises(NotFoundError):
+        run(
+            service.create_user(
+                email="driver@example.com",
+                full_name="Dan Driver",
+                role=UserRole.DRIVER,
+                organization_name=None,
+                cooperative_id=uuid4(),
+            )
+        )
 
 
 # ------------------------------------------------------- CooperativeMemberService

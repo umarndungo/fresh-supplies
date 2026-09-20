@@ -1,7 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.application.tenancy import require_not_administrator, scope_for
-from app.core.exceptions import ForbiddenError, NotFoundError, ValidationError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError, ValidationError
 from app.domain.entities import OwnerType, Shipment, ShipmentStatus, User, UserRole
 from app.domain.repositories import (
     CooperativeAccessGrantRepository,
@@ -153,7 +155,14 @@ class ShipmentService:
     async def delete_shipment(self, shipment_id: UUID, *, actor: User) -> None:
         self._ensure_can_manage(actor)
         await self._ensure_can_mutate(shipment_id, actor)
-        deleted = await self._shipments.delete(shipment_id)
+        try:
+            deleted = await self._shipments.delete(shipment_id)
+        except IntegrityError as exc:
+            # shipment_sync_staging.reconciled_shipment_id -> shipments.id
+            # has no ON DELETE clause (RESTRICT by default) — a shipment
+            # already matched to a synced mobile capture can't be removed
+            # out from under that record.
+            raise ConflictError("This shipment has synced field records and cannot be deleted.") from exc
         if not deleted:
             raise NotFoundError("Shipment not found.")
 
