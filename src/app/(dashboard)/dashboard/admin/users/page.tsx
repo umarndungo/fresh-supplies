@@ -185,6 +185,7 @@ function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
   const tenantsQuery = useTenants();
 
   const isSelf = currentUser?.id === user.id;
+  const supportsCooperative = role === "FARMER_COOPERATIVE" || role === "DRIVER";
 
   async function handleSubmit() {
     try {
@@ -194,8 +195,9 @@ function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
           fullName: fullName.trim() || undefined,
           organizationName: organizationName.trim() || undefined,
           role,
-          cooperativeId: cooperativeId === "none" ? null : cooperativeId,
-          cooperativeRole: cooperativeId === "none" ? null : cooperativeRole,
+          cooperativeId: supportsCooperative && cooperativeId !== "none" ? cooperativeId : null,
+          cooperativeRole:
+            supportsCooperative && cooperativeId !== "none" && role === "FARMER_COOPERATIVE" ? cooperativeRole : null,
           isActive,
           resetPassword: resetPassword.trim() || undefined,
         },
@@ -237,26 +239,41 @@ function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
               </SelectContent>
             </Select>
           </div>
-          <div className="space-y-2">
-            <Label>Cooperative</Label>
-            <Select value={cooperativeId} onValueChange={(value) => setCooperativeId(value)}>
-              <SelectTrigger><SelectValue placeholder="No cooperative" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="none">None</SelectItem>
-                {(tenantsQuery.data ?? []).map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>)}
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="space-y-2">
-            <Label>Cooperative role</Label>
-            <Select value={cooperativeRole} onValueChange={(value) => setCooperativeRole(value as "MEMBER" | "ADMIN")} disabled={cooperativeId === "none"}>
-              <SelectTrigger><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="MEMBER">Member</SelectItem>
-                <SelectItem value="ADMIN">Admin</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
+          {supportsCooperative ? (
+            <>
+              <div className="space-y-2">
+                <Label>Cooperative</Label>
+                <Select value={cooperativeId} onValueChange={(value) => setCooperativeId(value)}>
+                  <SelectTrigger><SelectValue placeholder="No cooperative" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    {(tenantsQuery.data ?? []).map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              {role === "FARMER_COOPERATIVE" ? (
+                <div className="space-y-2">
+                  <Label>Cooperative role</Label>
+                  <Select value={cooperativeRole} onValueChange={(value) => setCooperativeRole(value as "MEMBER" | "ADMIN")} disabled={cooperativeId === "none"}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="MEMBER">Member</SelectItem>
+                      <SelectItem value="ADMIN">Admin</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : null}
+            </>
+          ) : (role === "LOGISTICS_MANAGER" || role === "MARKET_ANALYST") ? (
+            <p className="text-xs text-muted-foreground rounded-md border p-3">
+              {USER_ROLE_LABELS[role]} accounts see data by cooperative access grant, not by
+              cooperative assignment here. Use{" "}
+              <a href="/dashboard/admin/grants" className="underline underline-offset-2">
+                Access Grants
+              </a>{" "}
+              to give this user visibility into a cooperative.
+            </p>
+          ) : null}
           <div className="flex items-center justify-between rounded-lg border p-3">
             <div>
               <Label htmlFor="edit-active">Account status</Label>
