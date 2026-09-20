@@ -7,14 +7,19 @@ from app.core.email_sender import send_invite_email
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
 from app.domain.entities import CooperativeRole, User, UserRole
-from app.domain.repositories import UserRepository
+from app.domain.repositories import CooperativeRepository, UserRepository
 
 
 class AdminService:
     """User administration operations (invite, roles, activation)."""
 
-    def __init__(self, user_repository: UserRepository):
+    def __init__(self, user_repository: UserRepository, cooperative_repository: CooperativeRepository):
         self._users = user_repository
+        self._cooperatives = cooperative_repository
+
+    async def _ensure_cooperative_exists(self, cooperative_id: UUID | None) -> None:
+        if cooperative_id is not None and not await self._cooperatives.get_by_id(cooperative_id):
+            raise NotFoundError("Cooperative not found.")
 
     async def list_users(self) -> list[User]:
         return await self._users.list_all()
@@ -35,15 +40,22 @@ class AdminService:
         existing = await self._users.get_by_email(email)
         if existing:
             raise ConflictError("An account with this email already exists.", field="email")
+        await self._ensure_cooperative_exists(cooperative_id)
 
-        user = await self._users.create_pending(
-            email=email,
-            full_name=full_name,
-            role=role,
-            organization_name=organization_name,
-            cooperative_id=cooperative_id,
-            cooperative_role=cooperative_role,
-        )
+        try:
+            user = await self._users.create_pending(
+                email=email,
+                full_name=full_name,
+                role=role,
+                organization_name=organization_name,
+                cooperative_id=cooperative_id,
+                cooperative_role=cooperative_role,
+            )
+        except IntegrityError as exc:
+            # The get_by_email check above is only advisory — two concurrent
+            # invites of the same email (e.g. a double-click) can both pass
+            # it and race on users.email's real unique constraint.
+            raise ConflictError("An account with this email already exists.", field="email") from exc
         await run_in_threadpool(send_invite_email, email, full_name, role.value)
         return user
 
@@ -63,6 +75,7 @@ class AdminService:
         # AdminTenantService (backend/docs/multitenancy_design.md §7.1) — it
         # still can't read that cooperative's shipments/produce, only manage
         # its membership/roster metadata.
+        await self._ensure_cooperative_exists(cooperative_id)
         user = await self._users.update_admin_user(
             user_id,
             full_name=full_name,

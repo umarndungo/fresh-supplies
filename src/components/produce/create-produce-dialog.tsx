@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toast } from "sonner";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, X, Edit2 } from "lucide-react";
@@ -59,8 +60,12 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
               estimatedShelfLifeDays: storageRisk.estimated_shelf_life_days,
             },
           });
-        } catch {
-          // The lot remains saved even if the optional ML assessment is unavailable.
+        } catch (error) {
+          // The lot remains saved even if the optional ML assessment is
+          // unavailable — but silently, "Pending" would look identical to
+          // "not attempted yet," so tell the user it actually failed.
+          console.error("Storage risk assessment failed for produce", created.id, error);
+          toast.warning("Produce saved — storage risk assessment unavailable right now.");
         }
       }
       form.reset();

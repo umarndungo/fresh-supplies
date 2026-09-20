@@ -290,6 +290,9 @@ class ShipmentSyncStagingRepository(ABC):
     async def create(self, **kwargs) -> ShipmentSyncStaging: ...
 
     @abstractmethod
+    async def rollback(self) -> None: ...
+
+    @abstractmethod
     async def update_photo_ref(self, client_id: str, photo_ref: str) -> None: ...
 
     @abstractmethod

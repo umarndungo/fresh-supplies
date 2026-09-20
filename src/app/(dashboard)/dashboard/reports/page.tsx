@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/common/page-header";
 import { DashboardSkeleton } from "@/components/common/dashboard-skeleton";
+import { ErrorState } from "@/components/common/error-state";
 import { useShipments } from "@/hooks/use-shipments";
 import { useProduce } from "@/hooks/use-produce";
 import { useAllMarketRecommendations } from "@/hooks/use-analytics";
@@ -47,8 +48,18 @@ function formatStatus(status: string): string {
 }
 
 export default function ReportsPage() {
-  const { data: shipments, isLoading: shipmentsLoading } = useShipments();
-  const { data: produce, isLoading: produceLoading } = useProduce();
+  const {
+    data: shipments,
+    isLoading: shipmentsLoading,
+    isError: shipmentsError,
+    refetch: refetchShipments,
+  } = useShipments();
+  const {
+    data: produce,
+    isLoading: produceLoading,
+    isError: produceError,
+    refetch: refetchProduce,
+  } = useProduce();
   const { data: allRecommendations, isLoading: recLoading } = useAllMarketRecommendations([]);
 
   const [reportType, setReportType] = useState<ReportType>("shipments");
@@ -189,6 +200,22 @@ export default function ReportsPage() {
       <div className="space-y-6">
         <PageHeader title="Reports" description="Export data reports as CSV" />
         <Card><CardContent className="h-64 flex items-center justify-center text-muted-foreground">Loading data...</CardContent></Card>
+      </div>
+    );
+  }
+
+  if (shipmentsError || produceError) {
+    return (
+      <div className="space-y-6">
+        <PageHeader title="Reports" description="Export data reports as CSV" />
+        <ErrorState
+          title="Couldn't load report data"
+          description="Shipment or produce data failed to load, so any export right now would be incomplete."
+          onRetry={() => {
+            if (shipmentsError) void refetchShipments();
+            if (produceError) void refetchProduce();
+          }}
+        />
       </div>
     );
   }

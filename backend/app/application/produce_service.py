@@ -1,7 +1,9 @@
 from uuid import UUID
 
+from sqlalchemy.exc import IntegrityError
+
 from app.application.tenancy import require_not_administrator, scope_for
-from app.core.exceptions import ForbiddenError, NotFoundError
+from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
 from app.domain.entities import (
     CommodityClass,
     CooperativeRole,
@@ -122,7 +124,13 @@ class ProduceService:
     async def delete_produce(self, produce_id: UUID, *, actor: User) -> None:
         self._ensure_can_manage(actor)
         await self._ensure_can_mutate(produce_id, actor)
-        deleted = await self._produce.delete(produce_id)
+        try:
+            deleted = await self._produce.delete(produce_id)
+        except IntegrityError as exc:
+            # shipments.produce_id -> produce.id has no ON DELETE clause
+            # (RESTRICT by default), so a produce lot already linked to a
+            # shipment can't just be removed out from under it.
+            raise ConflictError("This produce item has been shipped and cannot be deleted.") from exc
         if not deleted:
             raise NotFoundError("Produce item not found.")
 

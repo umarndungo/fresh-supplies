@@ -67,7 +67,7 @@ def stub_shipment_service():
                 })
             return results
 
-        async def upload_photo(self, client_id, file):
+        async def upload_photo(self, client_id, file, user):
             return {"photo_ref": f"media/shipment_photos/{client_id}.jpg", "status": "uploaded"}
 
         async def get_sync_status(self, since, user):
@@ -81,7 +81,7 @@ def stub_shipment_service():
 @pytest.fixture()
 def stub_recommendation_service():
     class StubRecommendationService:
-        async def get_recommendation(self, shipment_id, crop, quantity_kg, lat, lon, locale="en"):
+        async def get_recommendation(self, shipment_id, crop, quantity_kg, lat, lon, actor, locale="en"):
             return {
                 "risk_tier": "FRESH",
                 "risk_label": "Fresh",
