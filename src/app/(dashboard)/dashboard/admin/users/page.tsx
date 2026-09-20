@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, Plus, Shield, UserCog, UserRoundPlus, Trash2, Users, X } from "lucide-react";
+import { Loader2, Plus, Shield, UserCog, UserRoundPlus, Trash2, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -25,6 +25,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { useCreateAdminUser, useDeleteAdminUser, useAdminUsers, useUpdateAdminUser } from "@/hooks/use-admin";
+import { useTenants } from "@/hooks/use-tenants";
 import { useAuthContext } from "@/context/auth-context";
 import { formatDate, getInitials } from "@/lib/utils";
 import type { AdminUser, UserRole } from "@/types/admin.types";
@@ -35,15 +36,8 @@ const ROLE_VARIANTS: Record<UserRole, "default" | "secondary" | "warning" | "des
   LOGISTICS_MANAGER: "warning",
   FARMER_COOPERATIVE: "secondary",
   MARKET_ANALYST: "default",
+  DRIVER: "secondary",
 };
-
-function generateTemporaryPassword(): string {
-  const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-  const arr = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]);
-  const upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-  const digit = "23456789";
-  return `${arr}${upper[Math.floor(Math.random() * upper.length)]}${digit[Math.floor(Math.random() * digit.length)]}`;
-}
 
 function InviteUserDialog() {
   const [open, setOpen] = useState(false);
@@ -51,13 +45,13 @@ function InviteUserDialog() {
   const [email, setEmail] = useState("");
   const [role, setRole] = useState<UserRole>("FARMER_COOPERATIVE");
   const [organizationName, setOrganizationName] = useState("");
-  const [password, setPassword] = useState(() => generateTemporaryPassword());
+  const [cooperativeId, setCooperativeId] = useState("none");
+  const [cooperativeRole, setCooperativeRole] = useState<"MEMBER" | "ADMIN">("MEMBER");
   const [error, setError] = useState<string | null>(null);
   const createUser = useCreateAdminUser();
+  const tenantsQuery = useTenants();
 
-  function regeneratePassword() {
-    setPassword(generateTemporaryPassword());
-  }
+  const supportsCooperative = role === "FARMER_COOPERATIVE" || role === "DRIVER";
 
   async function handleSubmit() {
     setError(null);
@@ -73,16 +67,18 @@ function InviteUserDialog() {
       await createUser.mutateAsync({
         fullName: fullName.trim(),
         email: email.trim(),
-        password,
         role,
         organizationName: organizationName.trim() || null,
+        cooperativeId: supportsCooperative && cooperativeId !== "none" ? cooperativeId : null,
+        cooperativeRole: supportsCooperative && cooperativeId !== "none" && role === "FARMER_COOPERATIVE" ? cooperativeRole : null,
       });
       setOpen(false);
       setFullName("");
       setEmail("");
       setRole("FARMER_COOPERATIVE");
       setOrganizationName("");
-      setPassword(generateTemporaryPassword());
+      setCooperativeId("none");
+      setCooperativeRole("MEMBER");
     } catch {
       // Surfaced via toast in useCreateAdminUser's onError handler.
     }
@@ -100,7 +96,7 @@ function InviteUserDialog() {
         <DialogHeader>
           <DialogTitle>Invite a team member</DialogTitle>
           <DialogDescription>
-            Creates the account and shares a temporary password that must be changed on first sign-in.
+            Creates the account and emails them a sign-in code — they set their own password on first login.
           </DialogDescription>
         </DialogHeader>
         <DialogBody className="space-y-4">
@@ -131,16 +127,32 @@ function InviteUserDialog() {
             <Label htmlFor="invite-org">Organization (optional)</Label>
             <Input id="invite-org" value={organizationName} onChange={(e) => setOrganizationName(e.target.value)} placeholder="Nyeri Farmers Coop" />
           </div>
-          <div className="space-y-2">
-            <Label htmlFor="invite-password">Temporary password</Label>
-            <div className="flex gap-2">
-              <Input id="invite-password" value={password} onChange={(e) => setPassword(e.target.value)} className="font-mono" />
-              <Button type="button" variant="outline" onClick={regeneratePassword} title="Regenerate password">
-                <X className="size-4 rotate-45" />
-              </Button>
+          {supportsCooperative ? (
+            <div className="space-y-2">
+              <Label>Cooperative (optional)</Label>
+              <Select value={cooperativeId} onValueChange={setCooperativeId}>
+                <SelectTrigger><SelectValue placeholder="No cooperative" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None — solo tenant</SelectItem>
+                  {(tenantsQuery.data ?? []).map((tenant) => (
+                    <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <p className="text-xs text-muted-foreground">Copy this now — it is shown only once.</p>
-          </div>
+          ) : null}
+          {supportsCooperative && cooperativeId !== "none" && role === "FARMER_COOPERATIVE" ? (
+            <div className="space-y-2">
+              <Label>Cooperative role</Label>
+              <Select value={cooperativeRole} onValueChange={(value) => setCooperativeRole(value as "MEMBER" | "ADMIN")}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="MEMBER">Member</SelectItem>
+                  <SelectItem value="ADMIN">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          ) : null}
           {error ? <p className="text-sm text-destructive">{error}</p> : null}
         </DialogBody>
         <DialogFooter>
@@ -164,10 +176,13 @@ function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
   const [fullName, setFullName] = useState(user.fullName);
   const [organizationName, setOrganizationName] = useState(user.organizationName ?? "");
   const [role, setRole] = useState<UserRole>(user.role);
+  const [cooperativeId, setCooperativeId] = useState(user.cooperativeId ?? "none");
+  const [cooperativeRole, setCooperativeRole] = useState<"MEMBER" | "ADMIN">(user.cooperativeRole ?? "MEMBER");
   const [isActive, setIsActive] = useState(user.isActive);
   const [resetPassword, setResetPassword] = useState("");
   const { user: currentUser } = useAuthContext();
   const updateUser = useUpdateAdminUser();
+  const tenantsQuery = useTenants();
 
   const isSelf = currentUser?.id === user.id;
 
@@ -179,6 +194,8 @@ function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
           fullName: fullName.trim() || undefined,
           organizationName: organizationName.trim() || undefined,
           role,
+          cooperativeId: cooperativeId === "none" ? null : cooperativeId,
+          cooperativeRole: cooperativeId === "none" ? null : cooperativeRole,
           isActive,
           resetPassword: resetPassword.trim() || undefined,
         },
@@ -217,6 +234,26 @@ function EditUserDialog({ user, open, onOpenChange }: EditUserDialogProps) {
                     {USER_ROLE_LABELS[option]}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Cooperative</Label>
+            <Select value={cooperativeId} onValueChange={(value) => setCooperativeId(value)}>
+              <SelectTrigger><SelectValue placeholder="No cooperative" /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">None</SelectItem>
+                {(tenantsQuery.data ?? []).map((tenant) => <SelectItem key={tenant.id} value={tenant.id}>{tenant.name}</SelectItem>)}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Cooperative role</Label>
+            <Select value={cooperativeRole} onValueChange={(value) => setCooperativeRole(value as "MEMBER" | "ADMIN")} disabled={cooperativeId === "none"}>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="MEMBER">Member</SelectItem>
+                <SelectItem value="ADMIN">Admin</SelectItem>
               </SelectContent>
             </Select>
           </div>

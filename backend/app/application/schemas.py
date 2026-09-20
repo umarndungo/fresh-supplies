@@ -1,9 +1,19 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, Field, field_validator
+from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
-from app.domain.entities import CommodityClass, ProduceStatus, ShipmentStatus, UserRole
+from app.domain.entities import CommodityClass, CooperativeRole, ProduceStatus, ShipmentStatus, UserRole
+
+
+def _validate_password_complexity(value: str) -> str:
+    if not any(c.isupper() for c in value):
+        raise ValueError("Include at least one uppercase letter")
+    if not any(c.islower() for c in value):
+        raise ValueError("Include at least one lowercase letter")
+    if not any(c.isdigit() for c in value):
+        raise ValueError("Include at least one number")
+    return value
 
 
 class UserOut(BaseModel):
@@ -16,6 +26,7 @@ class UserOut(BaseModel):
     phone_number: str | None = Field(serialization_alias="phoneNumber")
     account_type: str | None = Field(serialization_alias="accountType")
     cooperative_id: UUID | None = Field(serialization_alias="cooperativeId")
+    cooperative_role: CooperativeRole | None = Field(default=None, serialization_alias="cooperativeRole")
     phone_verified: bool = Field(serialization_alias="phoneVerified")
     profile_completed: bool = Field(serialization_alias="profileCompleted")
     created_at: datetime = Field(serialization_alias="createdAt")
@@ -36,25 +47,28 @@ class LoginRequest(BaseModel):
     password: str = Field(min_length=1)
 
 
-class RegisterRequest(BaseModel):
-    full_name: str = Field(alias="fullName", min_length=2)
+class OTPRequest(BaseModel):
     email: EmailStr
-    password: str = Field(min_length=8)
-    role: UserRole
-    organization_name: str | None = Field(default=None, alias="organizationName")
 
     model_config = {"populate_by_name": True}
 
-    @field_validator("password")
+
+class OTPVerifyRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
+
+    model_config = {"populate_by_name": True}
+
+
+class SetPasswordRequest(BaseModel):
+    new_password: str = Field(alias="newPassword", min_length=8)
+
+    model_config = {"populate_by_name": True}
+
+    @field_validator("new_password")
     @classmethod
     def password_complexity(cls, value: str) -> str:
-        if not any(c.isupper() for c in value):
-            raise ValueError("Include at least one uppercase letter")
-        if not any(c.islower() for c in value):
-            raise ValueError("Include at least one lowercase letter")
-        if not any(c.isdigit() for c in value):
-            raise ValueError("Include at least one number")
-        return value
+        return _validate_password_complexity(value)
 
 
 class ShipmentOut(BaseModel):
@@ -88,6 +102,9 @@ class ShipmentOut(BaseModel):
     harvest_date_snapshot: datetime | None = Field(default=None, serialization_alias="harvestDateSnapshot")
     storage_spoilage_probability_snapshot: float | None = Field(default=None, serialization_alias="storageSpoilageProbabilitySnapshot")
     estimated_shelf_life_days_snapshot: float | None = Field(default=None, serialization_alias="estimatedShelfLifeDaysSnapshot")
+    storage_temperature_c_snapshot: float | None = Field(default=None, serialization_alias="storageTemperatureCSnapshot")
+    storage_pressure_psi_snapshot: float | None = Field(default=None, serialization_alias="storagePressurePsiSnapshot")
+    driver_user_id: UUID | None = Field(default=None, serialization_alias="driverUserId")
 
     model_config = {"populate_by_name": True, "from_attributes": True}
 
@@ -113,6 +130,8 @@ class CreateShipmentRequest(BaseModel):
     harvest_date_snapshot: datetime | None = Field(default=None, alias="harvestDateSnapshot")
     storage_spoilage_probability_snapshot: float | None = Field(default=None, alias="storageSpoilageProbabilitySnapshot", ge=0, le=1)
     estimated_shelf_life_days_snapshot: float | None = Field(default=None, alias="estimatedShelfLifeDaysSnapshot", ge=0)
+    storage_temperature_c_snapshot: float | None = Field(default=None, alias="storageTemperatureCSnapshot", ge=-20, le=60)
+    storage_pressure_psi_snapshot: float | None = Field(default=None, alias="storagePressurePsiSnapshot", ge=0)
 
     model_config = {"populate_by_name": True}
 
@@ -127,6 +146,7 @@ class AdminUserOut(BaseModel):
     phone_number: str | None = Field(serialization_alias="phoneNumber")
     account_type: str | None = Field(serialization_alias="accountType")
     cooperative_id: UUID | None = Field(serialization_alias="cooperativeId")
+    cooperative_role: str | None = Field(default=None, serialization_alias="cooperativeRole")
     phone_verified: bool = Field(serialization_alias="phoneVerified")
     profile_completed: bool = Field(serialization_alias="profileCompleted")
     is_active: bool = Field(serialization_alias="isActive")
@@ -136,24 +156,19 @@ class AdminUserOut(BaseModel):
 
 
 class AdminCreateUserRequest(BaseModel):
+    """No password field: an admin-provisioned account is always created
+    passwordless (profile_completed=False) and the invitee sets their own
+    password on first login via emailed OTP — see
+    backend/docs/multitenancy_design.md and AdminService.create_user."""
+
     full_name: str = Field(alias="fullName", min_length=2)
     email: EmailStr
-    password: str = Field(min_length=8)
     role: UserRole
     organization_name: str | None = Field(default=None, alias="organizationName")
+    cooperative_id: UUID | None = Field(default=None, alias="cooperativeId")
+    cooperative_role: CooperativeRole | None = Field(default=None, alias="cooperativeRole")
 
     model_config = {"populate_by_name": True}
-
-    @field_validator("password")
-    @classmethod
-    def password_complexity(cls, value: str) -> str:
-        if not any(c.isupper() for c in value):
-            raise ValueError("Include at least one uppercase letter")
-        if not any(c.islower() for c in value):
-            raise ValueError("Include at least one lowercase letter")
-        if not any(c.isdigit() for c in value):
-            raise ValueError("Include at least one number")
-        return value
 
 
 class AdminUpdateUserRequest(BaseModel):
@@ -162,21 +177,28 @@ class AdminUpdateUserRequest(BaseModel):
     role: UserRole | None = None
     is_active: bool | None = Field(default=None, alias="isActive")
     reset_password: str | None = Field(default=None, alias="resetPassword", min_length=8)
+    cooperative_id: UUID | None = Field(default=None, alias="cooperativeId")
+    cooperative_role: CooperativeRole | None = Field(default=None, alias="cooperativeRole")
 
     model_config = {"populate_by_name": True}
 
     @field_validator("reset_password")
     @classmethod
     def password_complexity(cls, value: str | None) -> str | None:
-        if value is None:
-            return value
-        if not any(c.isupper() for c in value):
-            raise ValueError("Include at least one uppercase letter")
-        if not any(c.islower() for c in value):
-            raise ValueError("Include at least one lowercase letter")
-        if not any(c.isdigit() for c in value):
-            raise ValueError("Include at least one number")
-        return value
+        return _validate_password_complexity(value) if value is not None else value
+
+
+class CreateCooperativeMemberRequest(BaseModel):
+    """Used by a cooperative admin (FARMER_COOPERATIVE + cooperative_role=ADMIN)
+    to add a member or driver to their OWN cooperative. cooperative_id and
+    cooperative_role are never taken from the client — CooperativeMemberService
+    always derives them from the acting cooperative admin."""
+
+    full_name: str = Field(alias="fullName", min_length=2)
+    email: EmailStr
+    role: UserRole
+
+    model_config = {"populate_by_name": True}
 
 
 class UpdateShipmentRequest(BaseModel):
@@ -190,6 +212,14 @@ class UpdateShipmentRequest(BaseModel):
     harvest_date_snapshot: datetime | None = Field(default=None, alias="harvestDateSnapshot")
     storage_spoilage_probability_snapshot: float | None = Field(default=None, alias="storageSpoilageProbabilitySnapshot", ge=0, le=1)
     estimated_shelf_life_days_snapshot: float | None = Field(default=None, alias="estimatedShelfLifeDaysSnapshot", ge=0)
+    storage_temperature_c_snapshot: float | None = Field(default=None, alias="storageTemperatureCSnapshot", ge=-20, le=60)
+    storage_pressure_psi_snapshot: float | None = Field(default=None, alias="storagePressurePsiSnapshot", ge=0)
+
+    model_config = {"populate_by_name": True}
+
+
+class AssignDriverRequest(BaseModel):
+    driver_user_id: UUID = Field(alias="driverUserId")
 
     model_config = {"populate_by_name": True}
 
@@ -204,7 +234,12 @@ class ProduceOut(BaseModel):
     harvest_date: datetime = Field(serialization_alias="harvestDate")
     storage_location: str = Field(serialization_alias="storageLocation")
     commodity_class: CommodityClass = Field(serialization_alias="commodityClass")
-    cooperative_id: UUID = Field(serialization_alias="cooperativeId")
+    owner_type: str = Field(serialization_alias="ownerType")
+    created_by: UUID = Field(serialization_alias="createdBy")
+    # Null for an INDIVIDUAL/solo-owned item — see
+    # backend/docs/multitenancy_design.md §2.1 (this used to be a mislabeled
+    # required FK to the creator; it's now a real, optional cooperative FK).
+    cooperative_id: UUID | None = Field(default=None, serialization_alias="cooperativeId")
     status: ProduceStatus
     storage_temperature_c: float | None = Field(default=None, serialization_alias="storageTemperatureC")
     storage_pressure_psi: float | None = Field(default=None, serialization_alias="storagePressurePsi")
@@ -251,3 +286,70 @@ class UpdateProduceRequest(BaseModel):
     estimated_shelf_life_days: float | None = Field(default=None, alias="estimatedShelfLifeDays", ge=0)
 
     model_config = {"populate_by_name": True}
+
+
+# --- Admin tenant lifecycle + billing usage (ADMINISTRATOR only) ---
+# See backend/docs/multitenancy_design.md §7. TenantUsageOut is deliberately
+# aggregate-only fields — never a shipment/produce row.
+
+
+class TenantOut(BaseModel):
+    id: UUID
+    name: str
+    created_by: UUID = Field(serialization_alias="createdBy")
+    created_at: datetime = Field(serialization_alias="createdAt")
+
+    model_config = {"populate_by_name": True, "from_attributes": True}
+
+
+class CreateTenantRequest(BaseModel):
+    name: str = Field(min_length=2)
+    # Optional: provision the cooperative's initial admin in the same call.
+    # Both-or-neither — see the model_validator below.
+    admin_email: EmailStr | None = Field(default=None, alias="adminEmail")
+    admin_full_name: str | None = Field(default=None, alias="adminFullName", min_length=2)
+
+    model_config = {"populate_by_name": True}
+
+    @model_validator(mode="after")
+    def admin_fields_both_or_neither(self) -> "CreateTenantRequest":
+        if (self.admin_email is None) != (self.admin_full_name is None):
+            raise ValueError("adminEmail and adminFullName must be provided together.")
+        return self
+
+
+class UpdateTenantRequest(BaseModel):
+    name: str | None = Field(default=None, min_length=2)
+
+    model_config = {"populate_by_name": True}
+
+
+class TenantUsageOut(BaseModel):
+    cooperative_id: UUID = Field(serialization_alias="cooperativeId")
+    member_count: int = Field(serialization_alias="memberCount")
+    shipment_count: int = Field(serialization_alias="shipmentCount")
+    produce_item_count: int = Field(serialization_alias="produceItemCount")
+    total_quantity_kg: float = Field(serialization_alias="totalQuantityKg")
+
+    model_config = {"populate_by_name": True}
+
+
+# --- Cooperative access grants (ADMINISTRATOR only) ---
+# See backend/docs/multitenancy_design.md §2.4/§7.3.
+
+
+class CreateGrantRequest(BaseModel):
+    user_id: UUID = Field(alias="userId")
+    cooperative_id: UUID = Field(alias="cooperativeId")
+
+    model_config = {"populate_by_name": True}
+
+
+class GrantOut(BaseModel):
+    id: UUID
+    user_id: UUID = Field(serialization_alias="userId")
+    cooperative_id: UUID = Field(serialization_alias="cooperativeId")
+    granted_by: UUID = Field(serialization_alias="grantedBy")
+    created_at: datetime = Field(serialization_alias="createdAt")
+
+    model_config = {"populate_by_name": True, "from_attributes": True}

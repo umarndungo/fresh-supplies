@@ -11,6 +11,8 @@ export interface SpoilageRequest {
   quantity_kg: number;
   harvest_age_hours?: number;
   storage_spoilage_probability?: number;
+  storage_temperature_c?: number;
+  storage_pressure_psi?: number;
   estimated_shelf_life_days?: number;
 }
 

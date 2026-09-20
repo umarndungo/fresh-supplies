@@ -14,8 +14,8 @@ import type { CreateProducePayload, UpdateProducePayload } from "@/types/produce
 
 const PRODUCE_QUERY_KEY = ["produce"] as const;
 
-export function useProduce() {
-  return useQuery({ queryKey: PRODUCE_QUERY_KEY, queryFn: listProduceRequest });
+export function useProduce(options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: PRODUCE_QUERY_KEY, queryFn: listProduceRequest, enabled: options?.enabled });
 }
 
 export function useProduceItem(id: string) {

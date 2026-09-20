@@ -35,8 +35,8 @@ export function LandingHero() {
             {/* CTA Buttons */}
             <div className="flex flex-col items-center justify-center gap-3 pt-2 sm:flex-row lg:justify-start">
               <Button asChild size="lg" className="w-full sm:w-auto gap-2 shadow-md hover:shadow-lg">
-                <Link href={ROUTES.register}>
-                  Create Free Account
+                <Link href={ROUTES.login}>
+                  Get Started
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>

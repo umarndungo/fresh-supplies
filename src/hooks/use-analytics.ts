@@ -21,6 +21,8 @@ function buildMarketRequest(shipment: Shipment) {
     top_n: 1,
     harvest_age_hours: harvestAgeHours,
     storage_spoilage_probability: shipment.storageSpoilageProbabilitySnapshot ?? 0,
+    storage_temperature_c: shipment.storageTemperatureCSnapshot,
+    storage_pressure_psi: shipment.storagePressurePsiSnapshot,
     estimated_shelf_life_days: shipment.estimatedShelfLifeDaysSnapshot,
   };
 }

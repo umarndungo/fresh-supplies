@@ -12,6 +12,7 @@ export interface AdminUser {
   phoneNumber: string | null;
   accountType: string | null;
   cooperativeId: string | null;
+  cooperativeRole: "MEMBER" | "ADMIN" | null;
   phoneVerified: boolean;
   profileCompleted: boolean;
   isActive: boolean;
@@ -21,9 +22,10 @@ export interface AdminUser {
 export interface CreateAdminUserPayload {
   fullName: string;
   email: string;
-  password: string;
   role: UserRole;
   organizationName?: string | null;
+  cooperativeId?: string | null;
+  cooperativeRole?: "MEMBER" | "ADMIN" | null;
 }
 
 export interface UpdateAdminUserPayload {
@@ -32,6 +34,8 @@ export interface UpdateAdminUserPayload {
   role?: UserRole;
   isActive?: boolean;
   resetPassword?: string;
+  cooperativeId?: string | null;
+  cooperativeRole?: "MEMBER" | "ADMIN" | null;
 }
 
 export const USER_ROLE_LABELS: Record<UserRole, string> = {
@@ -39,6 +43,7 @@ export const USER_ROLE_LABELS: Record<UserRole, string> = {
   LOGISTICS_MANAGER: "Logistics Manager",
   FARMER_COOPERATIVE: "Farmer Cooperative",
   MARKET_ANALYST: "Market Analyst",
+  DRIVER: "Driver",
 };
 
 export const USER_ROLE_OPTIONS = Object.keys(USER_ROLE_LABELS) as UserRole[];

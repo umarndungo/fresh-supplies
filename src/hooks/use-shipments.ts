@@ -14,8 +14,8 @@ import type { CreateShipmentPayload, UpdateShipmentPayload } from "@/types/shipm
 
 const SHIPMENTS_QUERY_KEY = ["shipments"] as const;
 
-export function useShipments() {
-  return useQuery({ queryKey: SHIPMENTS_QUERY_KEY, queryFn: listShipmentsRequest });
+export function useShipments(options?: { enabled?: boolean }) {
+  return useQuery({ queryKey: SHIPMENTS_QUERY_KEY, queryFn: listShipmentsRequest, enabled: options?.enabled });
 }
 
 export function useShipment(id: string) {

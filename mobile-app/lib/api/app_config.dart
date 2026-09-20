@@ -15,8 +15,8 @@ class AppConfig {
 
   static String get apiBaseUrl {
     if (_override.isNotEmpty) return _override;
-    if (kIsWeb) return 'http://localhost:8000/api/v1';
-    if (Platform.isAndroid) return 'http://10.0.2.2:8000/api/v1';
-    return 'http://localhost:8000/api/v1';
+    if (kIsWeb) return 'https://usgs-meal-after-durham.trycloudflare.com/api/v1';
+    if (Platform.isAndroid) return 'https://usgs-meal-after-durham.trycloudflare.com/api/v1';
+    return 'https://usgs-meal-after-durham.trycloudflare.com/api/v1';
   }
 }

@@ -3,7 +3,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends
 
 from app.api.deps import get_current_user, get_shipment_service
-from app.application.schemas import CreateShipmentRequest, ShipmentOut, UpdateShipmentRequest
+from app.application.schemas import AssignDriverRequest, CreateShipmentRequest, ShipmentOut, UpdateShipmentRequest
 from app.application.shipment_service import ShipmentService
 from app.domain.entities import User
 
@@ -12,10 +12,10 @@ router = APIRouter(prefix="/shipments", tags=["shipments"])
 
 @router.get("")
 async def list_shipments(
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: ShipmentService = Depends(get_shipment_service),
 ):
-    shipments = await service.list_shipments()
+    shipments = await service.list_shipments(actor=current_user)
     return {"data": [ShipmentOut.model_validate(s).model_dump(by_alias=True) for s in shipments]}
 
 
@@ -44,6 +44,8 @@ async def create_shipment(
         harvest_date_snapshot=payload.harvest_date_snapshot,
         storage_spoilage_probability_snapshot=payload.storage_spoilage_probability_snapshot,
         estimated_shelf_life_days_snapshot=payload.estimated_shelf_life_days_snapshot,
+        storage_temperature_c_snapshot=payload.storage_temperature_c_snapshot,
+        storage_pressure_psi_snapshot=payload.storage_pressure_psi_snapshot,
     )
     return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}
 
@@ -51,10 +53,10 @@ async def create_shipment(
 @router.get("/{shipment_id}")
 async def get_shipment(
     shipment_id: UUID,
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: ShipmentService = Depends(get_shipment_service),
 ):
-    shipment = await service.get_shipment(shipment_id)
+    shipment = await service.get_shipment(shipment_id, actor=current_user)
     return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}
 
 
@@ -78,6 +80,8 @@ async def update_shipment(
         harvest_date_snapshot=payload.harvest_date_snapshot,
         storage_spoilage_probability_snapshot=payload.storage_spoilage_probability_snapshot,
         estimated_shelf_life_days_snapshot=payload.estimated_shelf_life_days_snapshot,
+        storage_temperature_c_snapshot=payload.storage_temperature_c_snapshot,
+        storage_pressure_psi_snapshot=payload.storage_pressure_psi_snapshot,
     )
     return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}
 
@@ -89,3 +93,14 @@ async def delete_shipment(
     service: ShipmentService = Depends(get_shipment_service),
 ) -> None:
     await service.delete_shipment(shipment_id, actor=current_user)
+
+
+@router.patch("/{shipment_id}/assign-driver")
+async def assign_driver(
+    shipment_id: UUID,
+    payload: AssignDriverRequest,
+    current_user: User = Depends(get_current_user),
+    service: ShipmentService = Depends(get_shipment_service),
+):
+    shipment = await service.assign_driver(shipment_id, actor=current_user, driver_user_id=payload.driver_user_id)
+    return {"data": ShipmentOut.model_validate(shipment).model_dump(by_alias=True)}

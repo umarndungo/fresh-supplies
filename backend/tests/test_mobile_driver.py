@@ -51,7 +51,7 @@ def as_authenticated():
 @pytest.fixture()
 def stub_driver_service():
     class StubDriverService:
-        async def get_manifest(self, date, user_id, user_role):
+        async def get_manifest(self, date, *, actor):
             return [
                 {
                     "shipment_id": str(uuid4()),
@@ -66,7 +66,7 @@ def stub_driver_service():
                 }
             ]
 
-        async def confirm_stop(self, shipment_id, confirmed_at, lat, lon):
+        async def confirm_stop(self, shipment_id, confirmed_at, lat, lon, *, actor):
             return {"status": "confirmed", "shipment_status": "DELIVERED"}
 
     app.dependency_overrides[get_driver_service] = lambda: StubDriverService()

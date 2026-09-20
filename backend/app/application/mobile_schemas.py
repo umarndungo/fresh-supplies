@@ -1,17 +1,17 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field
 
 
 class OTPRequest(BaseModel):
-    phone_number: str = Field(alias="phoneNumber")
+    email: EmailStr
 
     model_config = {"populate_by_name": True}
 
 
 class OTPVerifyRequest(BaseModel):
-    phone_number: str = Field(alias="phoneNumber")
+    email: EmailStr
     code: str = Field(min_length=6, max_length=6)
 
     model_config = {"populate_by_name": True}
@@ -28,7 +28,10 @@ class MobileAuthTokensOut(BaseModel):
 
 class MobileUserOut(BaseModel):
     id: UUID
-    phone_number: str | None = Field(serialization_alias="phoneNumber")
+    email: str | None = None
+    # Kept for accounts created before the email-OTP switch (or any future
+    # SMS channel) — null for accounts created via email OTP.
+    phone_number: str | None = Field(default=None, serialization_alias="phoneNumber")
     role: str
     full_name: str | None = Field(serialization_alias="fullName")
     account_type: str | None = Field(serialization_alias="accountType")
@@ -40,15 +43,6 @@ class MobileUserOut(BaseModel):
 
 class MobileRefreshRequest(BaseModel):
     refresh_token: str = Field(alias="refreshToken")
-
-    model_config = {"populate_by_name": True}
-
-
-class CompleteProfileRequest(BaseModel):
-    full_name: str = Field(alias="fullName", min_length=2)
-    account_type: str = Field(alias="accountType")
-    cooperative_name: str | None = Field(default=None, alias="cooperativeName")
-    cooperative_id: UUID | None = Field(default=None, alias="cooperativeId")
 
     model_config = {"populate_by_name": True}
 

@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities import AccountType, User, UserRole
+from app.domain.entities import AccountType, CooperativeRole, User, UserRole
 from app.domain.repositories import UserRepository
 from app.infrastructure.models import UserModel
 
@@ -24,6 +24,7 @@ def _to_entity(model: UserModel) -> User:
         phone_verified=model.phone_verified,
         profile_completed=model.profile_completed,
         is_active=model.is_active,
+        cooperative_role=model.cooperative_role,
     )
 
 
@@ -68,15 +69,30 @@ class SqlAlchemyUserRepository(UserRepository):
         model = result.scalar_one_or_none()
         return _to_entity(model) if model else None
 
-    async def create_phone_user(self, *, phone_number: str) -> User:
+    async def create_pending(
+        self,
+        *,
+        email: str,
+        full_name: str,
+        role: UserRole,
+        organization_name: str | None = None,
+        cooperative_id: UUID | None = None,
+        cooperative_role: CooperativeRole | None = None,
+    ) -> User:
+        # Top-down provisioning (admin/cooperative-admin invite): no password
+        # yet — hashed_password is a sentinel, never checked by verify_password.
+        # The invitee's first login is an emailed OTP, then they set a real
+        # password (AuthService.set_password), which flips profile_completed.
         model = UserModel(
-            email=f"pending_{phone_number}@phone.freshroute.local",
-            full_name="",
-            hashed_password="phone_no_password",
-            role=UserRole.FARMER_COOPERATIVE,
-            organization_name=None,
-            phone_number=phone_number,
-            phone_verified=True,
+            email=email,
+            full_name=full_name,
+            hashed_password="pending_invite_no_password",
+            role=role,
+            organization_name=organization_name,
+            account_type=AccountType.COOPERATIVE if cooperative_id else AccountType.INDIVIDUAL,
+            cooperative_id=cooperative_id,
+            cooperative_role=cooperative_role,
+            phone_verified=False,
             profile_completed=False,
         )
         self._session.add(model)
@@ -84,31 +100,17 @@ class SqlAlchemyUserRepository(UserRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
-    async def update_profile(
-        self,
-        user_id: UUID,
-        *,
-        full_name: str | None = None,
-        account_type: AccountType | None = None,
-        cooperative_id: UUID | None = None,
-        profile_completed: bool | None = None,
-    ) -> None:
-        model = await self._session.get(UserModel, user_id)
-        if model is None:
-            return
-        if full_name is not None:
-            model.full_name = full_name
-        if account_type is not None:
-            model.account_type = account_type
-        if cooperative_id is not None:
-            model.cooperative_id = cooperative_id
-        if profile_completed is not None:
-            model.profile_completed = profile_completed
-        await self._session.commit()
-
     async def list_all(self) -> list[User]:
         result = await self._session.execute(
             select(UserModel).order_by(UserModel.created_at.desc())
+        )
+        return [_to_entity(m) for m in result.scalars().all()]
+
+    async def list_by_cooperative(self, cooperative_id: UUID) -> list[User]:
+        result = await self._session.execute(
+            select(UserModel)
+            .where(UserModel.cooperative_id == cooperative_id)
+            .order_by(UserModel.created_at.desc())
         )
         return [_to_entity(m) for m in result.scalars().all()]
 
@@ -121,6 +123,9 @@ class SqlAlchemyUserRepository(UserRepository):
         role: UserRole | None = None,
         is_active: bool | None = None,
         hashed_password: str | None = None,
+        cooperative_id: UUID | None = None,
+        cooperative_role: CooperativeRole | None = None,
+        profile_completed: bool | None = None,
     ) -> User | None:
         model = await self._session.get(UserModel, user_id)
         if model is None:
@@ -135,6 +140,12 @@ class SqlAlchemyUserRepository(UserRepository):
             model.is_active = is_active
         if hashed_password is not None:
             model.hashed_password = hashed_password
+        if cooperative_id is not None:
+            model.cooperative_id = cooperative_id
+        if cooperative_role is not None:
+            model.cooperative_role = cooperative_role
+        if profile_completed is not None:
+            model.profile_completed = profile_completed
         await self._session.commit()
         await self._session.refresh(model)
         return _to_entity(model)

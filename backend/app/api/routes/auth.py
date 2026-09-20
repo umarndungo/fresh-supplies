@@ -1,8 +1,16 @@
 from fastapi import APIRouter, Depends, Request, Response
 
-from app.api.deps import get_auth_service, get_current_user
+from app.api.deps import get_auth_service, get_current_user, get_otp_service
 from app.application.auth_service import AuthService
-from app.application.schemas import AuthTokensOut, LoginRequest, RegisterRequest, UserOut
+from app.application.otp_service import OTPService
+from app.application.schemas import (
+    AuthTokensOut,
+    LoginRequest,
+    OTPRequest,
+    OTPVerifyRequest,
+    SetPasswordRequest,
+    UserOut,
+)
 from app.core.config import settings
 from app.core.exceptions import UnauthorizedError
 from app.domain.entities import User
@@ -42,21 +50,38 @@ def _tokens_payload(user: User, access_token: str, expires_in: int) -> dict:
     return {"data": tokens.model_dump(by_alias=True)}
 
 
-@router.post("/register", status_code=201)
-async def register(
-    payload: RegisterRequest,
+@router.post("/otp/request")
+async def request_login_otp(
+    payload: OTPRequest,
+    auth_service: AuthService = Depends(get_auth_service),
+    otp_service: OTPService = Depends(get_otp_service),
+):
+    result = await auth_service.request_login_otp(payload.email, otp_service)
+    return result
+
+
+@router.post("/otp/verify")
+async def verify_login_otp(
+    payload: OTPVerifyRequest,
     response: Response,
     auth_service: AuthService = Depends(get_auth_service),
+    otp_service: OTPService = Depends(get_otp_service),
 ):
-    user, access_token, expires_in, refresh_token = await auth_service.register(
-        email=payload.email,
-        password=payload.password,
-        full_name=payload.full_name,
-        role=payload.role,
-        organization_name=payload.organization_name,
+    user, access_token, expires_in, refresh_token = await auth_service.verify_login_otp(
+        payload.email, payload.code, otp_service
     )
     _set_refresh_cookie(response, refresh_token)
     return _tokens_payload(user, access_token, expires_in)
+
+
+@router.post("/set-password")
+async def set_password(
+    payload: SetPasswordRequest,
+    current_user: User = Depends(get_current_user),
+    auth_service: AuthService = Depends(get_auth_service),
+):
+    user = await auth_service.set_password(current_user.id, payload.new_password)
+    return {"data": UserOut.model_validate(user).model_dump(by_alias=True)}
 
 
 @router.post("/login")

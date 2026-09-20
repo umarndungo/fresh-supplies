@@ -34,8 +34,8 @@ export function LandingCTA() {
 
             <div className="flex flex-col items-center justify-center gap-3 pt-4 sm:flex-row">
               <Button asChild size="lg" className="w-full sm:w-auto bg-white text-primary hover:bg-white/90 gap-2 shadow-lg">
-                <Link href={ROUTES.register}>
-                  Get Started Today
+                <Link href={ROUTES.login}>
+                  Get Started
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
