@@ -1,20 +1,40 @@
 from uuid import UUID
 
+from app.application.tenancy import require_not_administrator, scope_for
 from app.core.exceptions import NotFoundError
 from app.core.i18n import get_risk_label
-from app.domain.repositories import ShipmentRepository
+from app.domain.entities import User
+from app.domain.repositories import CooperativeAccessGrantRepository, ShipmentRepository
 from app.application.ml_service import recommend_market
 
 
 class MobileRecommendationService:
-    def __init__(self, shipment_repository: ShipmentRepository):
+    def __init__(self, shipment_repository: ShipmentRepository, grants: CooperativeAccessGrantRepository):
         self._shipments = shipment_repository
+        self._grants = grants
 
     async def get_recommendation(
-        self, shipment_id: UUID, crop: str, quantity_kg: float, lat: float, lon: float, locale: str = "en"
+        self,
+        shipment_id: UUID,
+        crop: str,
+        quantity_kg: float,
+        lat: float,
+        lon: float,
+        actor: User,
+        locale: str = "en",
     ) -> dict:
+        require_not_administrator(actor)
         shipment = await self._shipments.get_by_id(shipment_id)
-        if not shipment:
+        scope = await scope_for(actor, self._grants)
+        if not shipment or not scope.covers(
+            owner_type=shipment.owner_type,
+            cooperative_id=shipment.cooperative_id,
+            created_by=shipment.created_by,
+            driver_user_id=shipment.driver_user_id,
+        ):
+            # Same "not found" framing as ShipmentService.get_shipment — a
+            # 403 here would confirm the ID belongs to someone else's
+            # shipment even though this caller can't otherwise reach it.
             raise NotFoundError("Shipment not found.")
 
         try:

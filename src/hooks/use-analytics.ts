@@ -43,7 +43,11 @@ export function useAllMarketRecommendations(shipments: Shipment[]) {
           try {
             const recommendations = await recommendMarketRequest(buildMarketRequest(shipment));
             results[shipment.id] = recommendations;
-          } catch {
+          } catch (error) {
+            // Degrade to "no recommendation" rather than failing the whole
+            // batch — but still log it, so a downed ML service is
+            // distinguishable from a shipment that genuinely has none.
+            console.error(`Market recommendation failed for shipment ${shipment.id}:`, error);
             results[shipment.id] = [];
           }
         })

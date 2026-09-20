@@ -52,6 +52,13 @@ class SqlAlchemyShipmentSyncStagingRepository(ShipmentSyncStagingRepository):
         await self._session.refresh(model)
         return _to_entity(model)
 
+    async def rollback(self) -> None:
+        # sync_shipments() processes a batch in one session; a caller that
+        # catches an IntegrityError from create() must roll back before
+        # issuing any further query on this session, or every subsequent
+        # item in the batch fails with "current transaction is aborted."
+        await self._session.rollback()
+
     async def update_photo_ref(self, client_id: str, photo_ref: str) -> None:
         await self._session.execute(
             update(ShipmentSyncStagingModel)

@@ -68,11 +68,13 @@ async def get_mobile_shipment_service(session: AsyncSession = Depends(get_db_ses
 
 
 async def get_mobile_recommendation_service(session: AsyncSession = Depends(get_db_session)) -> MobileRecommendationService:
-    return MobileRecommendationService(SqlAlchemyShipmentRepository(session))
+    return MobileRecommendationService(
+        SqlAlchemyShipmentRepository(session), SqlAlchemyCooperativeAccessGrantRepository(session)
+    )
 
 
 async def get_admin_service(session: AsyncSession = Depends(get_db_session)) -> AdminService:
-    return AdminService(SqlAlchemyUserRepository(session))
+    return AdminService(SqlAlchemyUserRepository(session), SqlAlchemyCooperativeRepository(session))
 
 
 async def get_admin_tenant_service(session: AsyncSession = Depends(get_db_session)) -> AdminTenantService:

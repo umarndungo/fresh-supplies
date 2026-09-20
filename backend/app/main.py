@@ -76,6 +76,24 @@ async def validation_error_handler(request: Request, exc: RequestValidationError
     )
 
 
+_error_logger = logging.getLogger("freshroute.errors")
+
+
+@app.exception_handler(Exception)
+async def unhandled_error_handler(request: Request, exc: Exception) -> JSONResponse:
+    # Anything that reaches here is a bug or an unmapped failure (e.g. an
+    # IntegrityError a service forgot to catch) — without this, FastAPI's
+    # default response skips the {message, errors, statusCode} envelope
+    # every client (web, mobile) actually parses, and can leak a raw
+    # traceback if debug mode is ever on. Full detail still goes to the
+    # server log; the client only ever sees a generic, safe message.
+    _error_logger.exception("Unhandled exception on %s %s", request.method, request.url.path)
+    return JSONResponse(
+        status_code=500,
+        content={"message": "Something went wrong. Please try again.", "errors": None, "statusCode": 500},
+    )
+
+
 app.include_router(api_router, prefix=settings.API_V1_PREFIX)
 
 

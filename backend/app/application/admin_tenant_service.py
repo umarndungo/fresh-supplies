@@ -1,6 +1,7 @@
 from uuid import UUID
 
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy.exc import IntegrityError
 
 from app.core.email_sender import send_invite_email
 from app.core.exceptions import ConflictError, ForbiddenError, NotFoundError
@@ -47,14 +48,19 @@ class AdminTenantService:
         cooperative = await self._cooperatives.create(name=name, created_by=actor.id)
 
         if admin_email is not None:
-            await self._users.create_pending(
-                email=admin_email,
-                full_name=admin_full_name or "",
-                role=UserRole.FARMER_COOPERATIVE,
-                organization_name=None,
-                cooperative_id=cooperative.id,
-                cooperative_role=CooperativeRole.ADMIN,
-            )
+            try:
+                await self._users.create_pending(
+                    email=admin_email,
+                    full_name=admin_full_name or "",
+                    role=UserRole.FARMER_COOPERATIVE,
+                    organization_name=None,
+                    cooperative_id=cooperative.id,
+                    cooperative_role=CooperativeRole.ADMIN,
+                )
+            except IntegrityError as exc:
+                # The get_by_email check above is only advisory — a
+                # concurrent invite of the same email can race it.
+                raise ConflictError("An account with this email already exists.", field="adminEmail") from exc
             await run_in_threadpool(
                 send_invite_email, admin_email, admin_full_name or "", UserRole.FARMER_COOPERATIVE.value
             )

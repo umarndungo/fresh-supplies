@@ -1,4 +1,5 @@
 from fastapi.concurrency import run_in_threadpool
+from sqlalchemy.exc import IntegrityError
 
 from app.core.email_sender import send_invite_email
 from app.core.exceptions import ConflictError, ForbiddenError, ValidationError
@@ -36,14 +37,20 @@ class CooperativeMemberService:
             raise ConflictError("An account with this email already exists.", field="email")
 
         cooperative_role = CooperativeRole.MEMBER if role == UserRole.FARMER_COOPERATIVE else None
-        user = await self._users.create_pending(
-            email=email,
-            full_name=full_name,
-            role=role,
-            organization_name=None,
-            cooperative_id=actor.cooperative_id,
-            cooperative_role=cooperative_role,
-        )
+        try:
+            user = await self._users.create_pending(
+                email=email,
+                full_name=full_name,
+                role=role,
+                organization_name=None,
+                cooperative_id=actor.cooperative_id,
+                cooperative_role=cooperative_role,
+            )
+        except IntegrityError as exc:
+            # The get_by_email check above is only advisory — a concurrent
+            # invite of the same email (e.g. two cooperative admins) can
+            # race it.
+            raise ConflictError("An account with this email already exists.", field="email") from exc
         await run_in_threadpool(send_invite_email, email, full_name, role.value)
         return user
 

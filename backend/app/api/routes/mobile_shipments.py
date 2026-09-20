@@ -42,10 +42,10 @@ async def sync_shipments(
 async def upload_photo(
     client_id: str = Form(...),
     file: UploadFile = File(...),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: MobileShipmentService = Depends(get_mobile_shipment_service),
 ):
-    result = await service.upload_photo(client_id=client_id, file=file)
+    result = await service.upload_photo(client_id=client_id, file=file, user=current_user)
     return PhotoUploadResponse(**result).model_dump(by_alias=True)
 
 
@@ -72,7 +72,7 @@ async def get_recommendation(
     lat: float = Query(...),
     lon: float = Query(...),
     accept_language: str = Query(default="en", alias="Accept-Language"),
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: MobileRecommendationService = Depends(get_mobile_recommendation_service),
 ):
     result = await service.get_recommendation(
@@ -81,6 +81,7 @@ async def get_recommendation(
         quantity_kg=quantity_kg,
         lat=lat,
         lon=lon,
+        actor=current_user,
         locale=accept_language,
     )
     return MobileRecommendationResponse(**result).model_dump(by_alias=True)

@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from fastapi import UploadFile
+from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
 from app.core.exceptions import NotFoundError
@@ -34,20 +35,37 @@ class MobileShipmentService:
             owner_type = OwnerType(user.account_type.value) if user.account_type else OwnerType.INDIVIDUAL
             coop_id = user.cooperative_id if owner_type == OwnerType.COOPERATIVE else None
 
-            staging = await self._staging.create(
-                client_id=item["client_id"],
-                crop=item["crop"],
-                quantity_kg=item["quantity_kg"],
-                captured_at=item["captured_at"],
-                location_lat=item["location"]["lat"],
-                location_lon=item["location"]["lon"],
-                photo_ref=item.get("photo_ref"),
-                photo_status="pending" if item.get("photo_ref") else None,
-                notes=item.get("notes"),
-                owner_type=owner_type,
-                cooperative_id=coop_id,
-                submitted_by_user_id=user.id,
-            )
+            try:
+                staging = await self._staging.create(
+                    client_id=item["client_id"],
+                    crop=item["crop"],
+                    quantity_kg=item["quantity_kg"],
+                    captured_at=item["captured_at"],
+                    location_lat=item["location"]["lat"],
+                    location_lon=item["location"]["lon"],
+                    photo_ref=item.get("photo_ref"),
+                    photo_status="pending" if item.get("photo_ref") else None,
+                    notes=item.get("notes"),
+                    owner_type=owner_type,
+                    cooperative_id=coop_id,
+                    submitted_by_user_id=user.id,
+                )
+            except IntegrityError:
+                # client_id is unique — a retried batch (expected on flaky
+                # mobile connectivity) can race another in-flight sync of
+                # the same item past the get_by_client_id check above. Roll
+                # back so the session is usable for the rest of this batch,
+                # then treat it the same as the ordinary duplicate case.
+                await self._staging.rollback()
+                existing = await self._staging.get_by_client_id(item["client_id"])
+                results.append({
+                    "client_id": item["client_id"],
+                    "status": "duplicate",
+                    "server_id": existing.id if existing else None,
+                    "risk_tier": None,
+                    "error": None,
+                })
+                continue
 
             risk_tier = None
             try:
@@ -72,9 +90,13 @@ class MobileShipmentService:
 
         return results
 
-    async def upload_photo(self, client_id: str, file: UploadFile) -> dict:
+    async def upload_photo(self, client_id: str, file: UploadFile, user: User) -> dict:
         staging = await self._staging.get_by_client_id(client_id)
-        if not staging:
+        # Same "not found" framing whether the client_id doesn't exist or
+        # belongs to someone else's staged capture — a client_id can leak
+        # (shared device, support ticket, log line), and confirming it's
+        # real but not yours would be its own small information leak.
+        if not staging or staging.submitted_by_user_id != user.id:
             raise NotFoundError("Shipment with this client_id not found.")
 
         photo_dir = Path(settings.PHOTO_STORAGE_PATH)
