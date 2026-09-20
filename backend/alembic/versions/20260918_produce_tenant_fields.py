@@ -28,6 +28,13 @@ def upgrade() -> None:
     op.add_column("produce", sa.Column("owner_type", owner_type_enum, nullable=True))
     op.add_column("produce", sa.Column("created_by", postgresql.UUID(as_uuid=True), nullable=True))
 
+    # The old FK (produce.cooperative_id -> users.id) and the NOT NULL
+    # constraint on that column must both be lifted before the data rewrites
+    # below: they're about to write real cooperative ids (rejected by the
+    # old users-targeted FK) and NULLs (rejected by NOT NULL) into it.
+    op.drop_constraint("produce_cooperative_id_fkey", "produce", type_="foreignkey")
+    op.alter_column("produce", "cooperative_id", nullable=True)
+
     # Recover the real creator from the mislabeled cooperative_id.
     op.execute("UPDATE produce SET created_by = cooperative_id")
 
@@ -64,13 +71,11 @@ def upgrade() -> None:
         "UPDATE produce SET owner_type = 'INDIVIDUAL' WHERE owner_type = 'COOPERATIVE' AND cooperative_id IS NULL"
     )
 
-    op.drop_constraint("produce_cooperative_id_fkey", "produce", type_="foreignkey")
     op.create_foreign_key(
         "produce_cooperative_id_fkey", "produce", "cooperatives", ["cooperative_id"], ["id"]
     )
     op.create_foreign_key("fk_produce_created_by", "produce", "users", ["created_by"], ["id"])
 
-    op.alter_column("produce", "cooperative_id", nullable=True)
     op.alter_column("produce", "owner_type", nullable=False)
     op.alter_column("produce", "created_by", nullable=False)
 
