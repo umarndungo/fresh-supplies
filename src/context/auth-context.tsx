@@ -9,11 +9,18 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import { fetchCurrentUserRequest, loginRequest, logoutRequest, registerRequest } from "@/lib/api/auth.api";
+import {
+  fetchCurrentUserRequest,
+  loginRequest,
+  logoutRequest,
+  requestLoginOtpRequest,
+  setPasswordRequest,
+  verifyLoginOtpRequest,
+} from "@/lib/api/auth.api";
 import { setAccessToken, clearAccessToken } from "@/lib/api/client";
 import { SESSION_FLAG_COOKIE } from "@/lib/constants";
 import { env } from "@/lib/env";
-import type { AuthUser, LoginCredentials, RegisterPayload } from "@/types/auth.types";
+import type { AuthUser, LoginCredentials } from "@/types/auth.types";
 
 type AuthStatus = "loading" | "authenticated" | "unauthenticated";
 
@@ -21,7 +28,9 @@ interface AuthContextValue {
   user: AuthUser | null;
   status: AuthStatus;
   login: (credentials: LoginCredentials) => Promise<AuthUser>;
-  register: (payload: RegisterPayload) => Promise<AuthUser>;
+  requestLoginOtp: (email: string) => Promise<void>;
+  verifyLoginOtp: (email: string, code: string) => Promise<AuthUser>;
+  setPassword: (newPassword: string) => Promise<AuthUser>;
   logout: () => Promise<void>;
 }
 
@@ -34,6 +43,9 @@ const DEMO_USER: AuthUser = {
   role: "ADMINISTRATOR",
   organizationName: "Fresh Supplies Demo",
   avatarUrl: null,
+  cooperativeId: null,
+  cooperativeRole: null,
+  profileCompleted: true,
   createdAt: new Date().toISOString(),
 };
 
@@ -112,7 +124,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return result.user;
   }, []);
 
-  const register = useCallback(async (payload: RegisterPayload) => {
+  const requestLoginOtp = useCallback(async (email: string) => {
+    if (env.NEXT_PUBLIC_DEV_AUTH_BYPASS) return;
+    await requestLoginOtpRequest(email);
+  }, []);
+
+  const verifyLoginOtp = useCallback(async (email: string, code: string) => {
     if (env.NEXT_PUBLIC_DEV_AUTH_BYPASS) {
       setUser(DEMO_USER);
       setStatus("authenticated");
@@ -120,12 +137,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return DEMO_USER;
     }
 
-    const result = await registerRequest(payload);
+    const result = await verifyLoginOtpRequest(email, code);
     setAccessToken(result.accessToken);
     setUser(result.user);
     setStatus("authenticated");
     setSessionFlag(true);
     return result.user;
+  }, []);
+
+  const setPassword = useCallback(async (newPassword: string) => {
+    const updatedUser = await setPasswordRequest(newPassword);
+    setUser(updatedUser);
+    return updatedUser;
   }, []);
 
   const logout = useCallback(async () => {
@@ -147,8 +170,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const value = useMemo(
-    () => ({ user, status, login, register, logout }),
-    [user, status, login, register, logout]
+    () => ({ user, status, login, requestLoginOtp, verifyLoginOtp, setPassword, logout }),
+    [user, status, login, requestLoginOtp, verifyLoginOtp, setPassword, logout]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

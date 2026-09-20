@@ -1,10 +1,12 @@
 from uuid import UUID
 
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.exc import IntegrityError
 
+from app.core.email_sender import send_invite_email
 from app.core.exceptions import ConflictError, NotFoundError
 from app.core.security import hash_password
-from app.domain.entities import User, UserRole
+from app.domain.entities import CooperativeRole, User, UserRole
 from app.domain.repositories import UserRepository
 
 
@@ -21,22 +23,29 @@ class AdminService:
         self,
         *,
         email: str,
-        password: str,
         full_name: str,
         role: UserRole,
         organization_name: str | None,
+        cooperative_id: UUID | None = None,
+        cooperative_role: CooperativeRole | None = None,
     ) -> User:
+        # Top-down provisioning: no password is set here — the invitee's
+        # first login is an emailed OTP, then they set their own password
+        # (see AuthService.set_password / POST /auth/set-password).
         existing = await self._users.get_by_email(email)
         if existing:
             raise ConflictError("An account with this email already exists.", field="email")
 
-        return await self._users.create(
+        user = await self._users.create_pending(
             email=email,
             full_name=full_name,
-            hashed_password=hash_password(password),
             role=role,
             organization_name=organization_name,
+            cooperative_id=cooperative_id,
+            cooperative_role=cooperative_role,
         )
+        await run_in_threadpool(send_invite_email, email, full_name, role.value)
+        return user
 
     async def update_user(
         self,
@@ -47,7 +56,13 @@ class AdminService:
         role: UserRole | None = None,
         is_active: bool | None = None,
         reset_password: str | None = None,
+        cooperative_id: UUID | None = None,
+        cooperative_role: CooperativeRole | None = None,
     ) -> User:
+        # Lets ADMINISTRATOR attach a user to a cooperative it created via
+        # AdminTenantService (backend/docs/multitenancy_design.md §7.1) — it
+        # still can't read that cooperative's shipments/produce, only manage
+        # its membership/roster metadata.
         user = await self._users.update_admin_user(
             user_id,
             full_name=full_name,
@@ -55,6 +70,8 @@ class AdminService:
             role=role,
             is_active=is_active,
             hashed_password=hash_password(reset_password) if reset_password else None,
+            cooperative_id=cooperative_id,
+            cooperative_role=cooperative_role,
         )
         if user is None:
             raise NotFoundError("User not found.")

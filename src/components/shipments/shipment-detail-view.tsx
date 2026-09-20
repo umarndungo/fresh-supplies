@@ -48,6 +48,8 @@ function buildSpoilageRequest(shipment: Shipment) {
     quantity_kg: shipment.quantityKg ?? 100,
     harvest_age_hours: harvestAgeHours,
     storage_spoilage_probability: shipment.storageSpoilageProbabilitySnapshot ?? 0,
+    storage_temperature_c: shipment.storageTemperatureCSnapshot,
+    storage_pressure_psi: shipment.storagePressurePsiSnapshot,
     estimated_shelf_life_days: shipment.estimatedShelfLifeDaysSnapshot,
   };
 }
@@ -536,6 +538,14 @@ export function ShipmentDetailView({ id }: { id: string }) {
               <div>
                 <dt className="text-sm text-muted-foreground">Shelf life at scheduling</dt>
                 <dd>{shipment.estimatedShelfLifeDaysSnapshot !== undefined ? `${shipment.estimatedShelfLifeDaysSnapshot} days` : "Not assessed"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Storage temperature snapshot</dt>
+                <dd>{shipment.storageTemperatureCSnapshot !== undefined ? `${shipment.storageTemperatureCSnapshot} °C` : "Not recorded"}</dd>
+              </div>
+              <div>
+                <dt className="text-sm text-muted-foreground">Storage pressure snapshot</dt>
+                <dd>{shipment.storagePressurePsiSnapshot !== undefined ? `${shipment.storagePressurePsiSnapshot} PSI` : "Not recorded"}</dd>
               </div>
             </dl>
             {!shipment.originLatitude && (

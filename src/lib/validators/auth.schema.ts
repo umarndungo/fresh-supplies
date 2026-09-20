@@ -14,21 +14,26 @@ const passwordSchema = z
   .regex(/[a-z]/, "Include at least one lowercase letter")
   .regex(/[0-9]/, "Include at least one number");
 
-export const registerSchema = z
+export const otpEmailSchema = z.object({
+  email: z.string().min(1, "Email is required").email("Enter a valid email address"),
+});
+
+export type OtpEmailFormValues = z.infer<typeof otpEmailSchema>;
+
+export const otpCodeSchema = z.object({
+  code: z.string().length(6, "Enter the 6-digit code"),
+});
+
+export type OtpCodeFormValues = z.infer<typeof otpCodeSchema>;
+
+export const setPasswordSchema = z
   .object({
-    fullName: z.string().min(2, "Enter your full name"),
-    email: z.string().min(1, "Email is required").email("Enter a valid email address"),
-    organizationName: z.string().optional(),
-    role: z.enum(
-      ["ADMINISTRATOR", "LOGISTICS_MANAGER", "FARMER_COOPERATIVE", "MARKET_ANALYST"],
-      { required_error: "Select a role" }
-    ),
-    password: passwordSchema,
+    newPassword: passwordSchema,
     confirmPassword: z.string().min(1, "Confirm your password"),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((data) => data.newPassword === data.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
 
-export type RegisterFormValues = z.infer<typeof registerSchema>;
+export type SetPasswordFormValues = z.infer<typeof setPasswordSchema>;

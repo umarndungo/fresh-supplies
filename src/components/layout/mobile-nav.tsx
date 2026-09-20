@@ -7,7 +7,7 @@ import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Logo } from "@/components/common/logo";
-import { NAV_SECTIONS } from "@/config/navigation";
+import { NAV_SECTIONS, isNavItemVisible } from "@/config/navigation";
 import { useAuthContext } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
 
@@ -30,7 +30,7 @@ export function MobileNav() {
         </SheetHeader>
         <nav className="space-y-6 overflow-y-auto px-3 py-4">
           {NAV_SECTIONS.map((section) => {
-            const items = section.items.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
+            const items = section.items.filter((item) => isNavItemVisible(item, user));
             if (items.length === 0) return null;
             return (
               <div key={section.title} className="space-y-1">

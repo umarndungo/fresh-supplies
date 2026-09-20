@@ -6,10 +6,10 @@ import { toast } from "sonner";
 import { useAuthContext } from "@/context/auth-context";
 import { ApiError } from "@/lib/api/api-error";
 import { ROUTES } from "@/lib/constants";
-import type { LoginCredentials, RegisterPayload } from "@/types/auth.types";
+import type { LoginCredentials } from "@/types/auth.types";
 
 export function useAuth() {
-  const { user, status, login, register, logout } = useAuthContext();
+  const { user, status, login, requestLoginOtp, verifyLoginOtp, setPassword, logout } = useAuthContext();
   const router = useRouter();
 
   const loginMutation = useMutation({
@@ -23,14 +23,39 @@ export function useAuth() {
     },
   });
 
-  const registerMutation = useMutation({
-    mutationFn: (payload: RegisterPayload) => register(payload),
+  const requestOtpMutation = useMutation({
+    mutationFn: (email: string) => requestLoginOtp(email),
+    onSuccess: () => {
+      toast.success("Code sent — check your email.");
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiError ? error.message : "Unable to send a sign-in code.");
+    },
+  });
+
+  const verifyOtpMutation = useMutation({
+    mutationFn: ({ email, code }: { email: string; code: string }) => verifyLoginOtp(email, code),
     onSuccess: (authUser) => {
-      toast.success(`Account created. Welcome, ${authUser.fullName.split(" ")[0]}.`);
+      if (!authUser.profileCompleted) {
+        router.push(ROUTES.setPassword);
+        return;
+      }
+      toast.success(`Welcome back, ${authUser.fullName.split(" ")[0]}.`);
       router.push(ROUTES.dashboard);
     },
     onError: (error) => {
-      toast.error(error instanceof ApiError ? error.message : "Unable to create your account.");
+      toast.error(error instanceof ApiError ? error.message : "That code didn't work. Please try again.");
+    },
+  });
+
+  const setPasswordMutation = useMutation({
+    mutationFn: (newPassword: string) => setPassword(newPassword),
+    onSuccess: () => {
+      toast.success("Password set. You're all set.");
+      router.push(ROUTES.dashboard);
+    },
+    onError: (error) => {
+      toast.error(error instanceof ApiError ? error.message : "Unable to set your password.");
     },
   });
 
@@ -51,8 +76,12 @@ export function useAuth() {
     isAuthenticated: status === "authenticated",
     login: loginMutation.mutateAsync,
     isLoggingIn: loginMutation.isPending,
-    register: registerMutation.mutateAsync,
-    isRegistering: registerMutation.isPending,
+    requestOtp: requestOtpMutation.mutateAsync,
+    isRequestingOtp: requestOtpMutation.isPending,
+    verifyOtp: verifyOtpMutation.mutateAsync,
+    isVerifyingOtp: verifyOtpMutation.isPending,
+    setPassword: setPasswordMutation.mutateAsync,
+    isSettingPassword: setPasswordMutation.isPending,
     logout: logoutMutation.mutateAsync,
     isLoggingOut: logoutMutation.isPending,
   };

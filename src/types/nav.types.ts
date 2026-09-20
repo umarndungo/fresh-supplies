@@ -6,6 +6,8 @@ export interface NavItem {
   href: string;
   icon: LucideIcon;
   roles?: UserRole[];
+  /** Only show to a FARMER_COOPERATIVE user whose cooperativeRole is ADMIN. */
+  requiresCooperativeAdmin?: boolean;
   description?: string;
 }
 

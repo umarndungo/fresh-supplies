@@ -33,6 +33,22 @@ class Settings(BaseSettings):
     OTP_EXPIRE_MINUTES: int = 5
     OTP_RATE_LIMIT_PER_MINUTE: int = 3
     OTP_RATE_LIMIT_WINDOW_MINUTES: int = 10
+
+    # SMTP — sends the mobile app's login OTP by email. SMTP_PASSWORD must be
+    # a Gmail *App Password* (Google Account -> Security -> 2-Step
+    # Verification -> App passwords), never the real account password —
+    # Gmail rejects plain-password SMTP AUTH outright. Set it in backend/.env
+    # (gitignored), never here or in .env.example.
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USE_TLS: bool = True
+    SMTP_USERNAME: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_EMAIL: str = "amosndungo@gmail.com"
+    SMTP_FROM_NAME: str = "Fresh Supplies"
+    # When false (no SMTP_PASSWORD configured), OTP codes are logged instead
+    # of emailed — keeps local dev working without real credentials.
+    SMTP_ENABLED: bool = False
     PHOTO_STORAGE_PATH: str = "./media/shipment_photos"
     PHOTO_MAX_LONG_EDGE: int = 1600
     PHOTO_JPEG_QUALITY: int = 80

@@ -189,8 +189,16 @@ def predict_storage_spoilage(produce: dict) -> dict:
     baseline_loss = min(95.0, age_days * 2.5)
     result = predict_spoilage(
         {
-            "Temperature_C": produce.get("storage_temperature_c", 25.0),
-            "Pressure_PSI": produce.get("storage_pressure_psi", 30.0),
+            # Lowercase keys here — _feature_vector() maps these into the
+            # model's dedicated Storage_Temperature_C / Storage_Pressure_PSI /
+            # Storage_Age_Hours features. Using "Temperature_C"/"Pressure_PSI"
+            # (the transit-labeled keys) instead used to route storage
+            # conditions into the transit slot, where Thermal_Heat_Exposure
+            # multiplies by Transit_Duration_Hr=0 and cancels it out — storage
+            # temperature/pressure/age all silently had zero effect.
+            "storage_temperature_c": produce.get("storage_temperature_c", 25.0),
+            "storage_pressure_psi": produce.get("storage_pressure_psi", 30.0),
+            "harvest_age_hours": age_hours,
             "Transit_Duration_Hr": 0.0,
             "baseline_loss_pct": baseline_loss,
             "quantity_kg": produce.get("quantity_kg", 100.0),

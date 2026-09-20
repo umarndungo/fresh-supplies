@@ -2,7 +2,8 @@ export type UserRole =
   | "ADMINISTRATOR"
   | "LOGISTICS_MANAGER"
   | "FARMER_COOPERATIVE"
-  | "MARKET_ANALYST";
+  | "MARKET_ANALYST"
+  | "DRIVER";
 
 export interface AuthUser {
   id: string;
@@ -11,21 +12,15 @@ export interface AuthUser {
   role: UserRole;
   organizationName: string | null;
   avatarUrl: string | null;
+  cooperativeId: string | null;
+  cooperativeRole: "MEMBER" | "ADMIN" | null;
+  profileCompleted: boolean;
   createdAt: string;
 }
 
 export interface LoginCredentials {
   email: string;
   password: string;
-}
-
-export interface RegisterPayload {
-  fullName: string;
-  email: string;
-  password: string;
-  confirmPassword: string;
-  role: UserRole;
-  organizationName?: string;
 }
 
 export interface AuthTokensResponse {

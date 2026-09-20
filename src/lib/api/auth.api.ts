@@ -1,6 +1,6 @@
 import { apiClient } from "@/lib/api/client";
 import { API_ENDPOINTS } from "@/lib/api/endpoints";
-import type { AuthTokensResponse, AuthUser, LoginCredentials, RegisterPayload } from "@/types/auth.types";
+import type { AuthTokensResponse, AuthUser, LoginCredentials } from "@/types/auth.types";
 import type { ApiSuccessResponse } from "@/types/api.types";
 
 export async function loginRequest(credentials: LoginCredentials): Promise<AuthTokensResponse> {
@@ -11,12 +11,22 @@ export async function loginRequest(credentials: LoginCredentials): Promise<AuthT
   return data.data;
 }
 
-export async function registerRequest(payload: RegisterPayload): Promise<AuthTokensResponse> {
-  const { confirmPassword: _confirmPassword, ...body } = payload;
-  const { data } = await apiClient.post<ApiSuccessResponse<AuthTokensResponse>>(
-    API_ENDPOINTS.auth.register,
-    body
-  );
+export async function requestLoginOtpRequest(email: string): Promise<void> {
+  await apiClient.post(API_ENDPOINTS.auth.otpRequest, { email });
+}
+
+export async function verifyLoginOtpRequest(email: string, code: string): Promise<AuthTokensResponse> {
+  const { data } = await apiClient.post<ApiSuccessResponse<AuthTokensResponse>>(API_ENDPOINTS.auth.otpVerify, {
+    email,
+    code,
+  });
+  return data.data;
+}
+
+export async function setPasswordRequest(newPassword: string): Promise<AuthUser> {
+  const { data } = await apiClient.post<ApiSuccessResponse<AuthUser>>(API_ENDPOINTS.auth.setPassword, {
+    newPassword,
+  });
   return data.data;
 }
 

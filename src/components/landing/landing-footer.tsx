@@ -52,22 +52,22 @@ export function LandingFooter() {
             <h4 className="text-xs font-semibold uppercase tracking-wider text-foreground">Roles</h4>
             <ul className="space-y-2 text-sm text-muted-foreground">
               <li>
-                <Link href={ROUTES.register} className="hover:text-foreground transition-colors">
+                <Link href={ROUTES.login} className="hover:text-foreground transition-colors">
                   Farmer Cooperatives
                 </Link>
               </li>
               <li>
-                <Link href={ROUTES.register} className="hover:text-foreground transition-colors">
+                <Link href={ROUTES.login} className="hover:text-foreground transition-colors">
                   Logistics Managers
                 </Link>
               </li>
               <li>
-                <Link href={ROUTES.register} className="hover:text-foreground transition-colors">
+                <Link href={ROUTES.login} className="hover:text-foreground transition-colors">
                   Market Analysts
                 </Link>
               </li>
               <li>
-                <Link href={ROUTES.register} className="hover:text-foreground transition-colors">
+                <Link href={ROUTES.login} className="hover:text-foreground transition-colors">
                   Administrators
                 </Link>
               </li>
@@ -80,11 +80,6 @@ export function LandingFooter() {
               <li>
                 <Link href={ROUTES.login} className="hover:text-foreground transition-colors">
                   Sign In
-                </Link>
-              </li>
-              <li>
-                <Link href={ROUTES.register} className="hover:text-foreground transition-colors">
-                  Create Account
                 </Link>
               </li>
             </ul>

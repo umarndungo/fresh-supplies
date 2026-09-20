@@ -9,6 +9,7 @@ class UserRole(str, Enum):
     LOGISTICS_MANAGER = "LOGISTICS_MANAGER"
     FARMER_COOPERATIVE = "FARMER_COOPERATIVE"
     MARKET_ANALYST = "MARKET_ANALYST"
+    DRIVER = "DRIVER"
 
 
 class AccountType(str, Enum):
@@ -27,6 +28,16 @@ class OwnerType(str, Enum):
     INDIVIDUAL = "INDIVIDUAL"
 
 
+class CooperativeRole(str, Enum):
+    """A FARMER_COOPERATIVE user's permission level within their own
+    cooperative. Meaningless (None) outside a cooperative context — solo
+    farmers, platform staff, and administrators never have one.
+    See backend/docs/multitenancy_design.md §1/§3."""
+
+    MEMBER = "MEMBER"
+    ADMIN = "ADMIN"
+
+
 @dataclass(frozen=True, slots=True)
 class User:
     id: UUID
@@ -43,6 +54,7 @@ class User:
     phone_verified: bool
     profile_completed: bool
     is_active: bool = True
+    cooperative_role: CooperativeRole | None = None
 
 
 class ShipmentStatus(str, Enum):
@@ -76,6 +88,9 @@ class Shipment:
     created_by: UUID
     created_at: datetime
     updated_at: datetime
+    cooperative_id: UUID | None = None
+    owner_type: OwnerType = OwnerType.INDIVIDUAL
+    driver_user_id: UUID | None = None
     # Origin location (source)
     origin_latitude: float | None = None
     origin_longitude: float | None = None
@@ -96,6 +111,8 @@ class Shipment:
     harvest_date_snapshot: datetime | None = None
     storage_spoilage_probability_snapshot: float | None = None
     estimated_shelf_life_days_snapshot: float | None = None
+    storage_temperature_c_snapshot: float | None = None
+    storage_pressure_psi_snapshot: float | None = None
 
 
 @dataclass(frozen=True, slots=True)
@@ -109,10 +126,12 @@ class ProduceItem:
     harvest_date: datetime
     storage_location: str
     commodity_class: CommodityClass
-    cooperative_id: UUID
+    owner_type: OwnerType
+    created_by: UUID
     status: ProduceStatus
     created_at: datetime
     updated_at: datetime
+    cooperative_id: UUID | None = None
     storage_temperature_c: float | None = None
     storage_pressure_psi: float | None = None
     storage_spoilage_probability: float | None = None
@@ -124,7 +143,7 @@ class ProduceItem:
 @dataclass(frozen=True, slots=True)
 class OTPCode:
     id: UUID
-    phone_number: str
+    identifier: str  # email address (was phone_number before the email-OTP switch)
     code: str
     expires_at: datetime
     used: bool
@@ -136,6 +155,20 @@ class Cooperative:
     id: UUID
     name: str
     created_by: UUID
+    created_at: datetime
+
+
+@dataclass(frozen=True, slots=True)
+class CooperativeAccessGrant:
+    """Grants a LOGISTICS_MANAGER or MARKET_ANALYST read (and, for
+    LOGISTICS_MANAGER, mutate) visibility into one cooperative's shipments
+    and produce. See backend/docs/multitenancy_design.md §2.4/§7.3 —
+    ADMINISTRATOR is never a valid grantee, enforced by the repository."""
+
+    id: UUID
+    user_id: UUID
+    cooperative_id: UUID
+    granted_by: UUID
     created_at: datetime
 
 

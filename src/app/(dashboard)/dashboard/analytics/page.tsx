@@ -1,6 +1,6 @@
 "use client";
 
-import { RefreshCw, BarChart2, PieChart, TrendingUp } from "lucide-react";
+import { RefreshCw, BarChart2, PieChart, TrendingUp, ShieldAlert } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/common/page-header";
 import { RoleGate } from "@/components/auth/role-gate";
@@ -13,9 +13,12 @@ import { RiskDistributionChart } from "@/components/analytics/risk-distribution-
 import { DashboardSkeleton } from "@/components/common/dashboard-skeleton";
 import { ErrorState } from "@/components/common/error-state";
 import type { Shipment } from "@/types/shipment.types";
+import { useAuthContext } from "@/context/auth-context";
+import { EmptyState } from "@/components/common/empty-state";
 
 export default function AnalyticsPage() {
   const { data: shipments, isLoading, isError, refetch } = useShipments();
+  const { user } = useAuthContext();
   const { data: allRecommendations, isLoading: isRecLoading } = useAllMarketRecommendations(shipments ?? []);
   const {
     data: evaluation,
@@ -48,6 +51,10 @@ export default function AnalyticsPage() {
         />
       </div>
     );
+  }
+
+  if ((user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") && shipments?.length === 0) {
+    return <div className="space-y-6"><PageHeader title="Analytics" description="Spoilage trends, revenue analysis, and risk distribution" /><EmptyState icon={ShieldAlert} title="No cooperatives assigned yet — ask an administrator to grant you access" /></div>;
   }
 
   const shipmentsWithPredictions = (shipments ?? []).filter(

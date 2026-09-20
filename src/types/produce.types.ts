@@ -11,7 +11,11 @@ export interface Produce {
   harvestDate: string;
   storageLocation: string;
   commodityClass: CommodityClass;
-  cooperativeId: string;
+  ownerType: "COOPERATIVE" | "INDIVIDUAL";
+  createdBy: string;
+  // Null for an individual/solo-owned item — see
+  // backend/docs/multitenancy_design.md §2.1.
+  cooperativeId: string | null;
   status: ProduceStatus;
   storageTemperatureC?: number;
   storagePressurePsi?: number;

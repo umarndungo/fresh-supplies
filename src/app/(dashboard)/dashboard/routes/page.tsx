@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { Filter, X, MapPin, Truck, BarChart2, AlertTriangle } from "lucide-react";
+import { Filter, X, MapPin, Truck, BarChart2, AlertTriangle, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,11 +13,14 @@ import { useShipments } from "@/hooks/use-shipments";
 import { useAllMarketRecommendations } from "@/hooks/use-analytics";
 import type { Shipment } from "@/types/shipment.types";
 import type { MarketRecommendationOut } from "@/types/ml.types";
+import { useAuthContext } from "@/context/auth-context";
+import { EmptyState } from "@/components/common/empty-state";
 
 const RISK_TIERS = ["all", "Fresh", "At-Risk", "Critical"] as const;
 
 export default function RoutesPage() {
   const { data: shipments, isLoading, isError, refetch } = useShipments();
+  const { user } = useAuthContext();
   const { data: allRecommendations, isLoading: isRecLoading } = useAllMarketRecommendations(shipments ?? []);
 
   const [filterRiskTier, setFilterRiskTier] = useState<"all" | "Fresh" | "At-Risk" | "Critical">("all");
@@ -70,6 +73,10 @@ export default function RoutesPage() {
         </Card>
       </div>
     );
+  }
+
+  if ((user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") && shipments?.length === 0) {
+    return <div className="space-y-6"><PageHeader title="Route Optimization" description="Visualize and optimize shipment routes across the network" /><EmptyState icon={ShieldAlert} title="No cooperatives assigned yet — ask an administrator to grant you access" /></div>;
   }
 
   return (

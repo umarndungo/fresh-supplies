@@ -24,7 +24,7 @@ export function ProduceTable({ produceList }: { produceList: Produce[] }) {
             <TableHead>Price (KES/kg)</TableHead>
             <TableHead>Grade</TableHead>
             <TableHead>Harvested</TableHead>
-            <TableHead>Storage Risk</TableHead>
+            <TableHead title="Synthetic model estimate — not field validated.">Storage Risk</TableHead>
             <TableHead>Status</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
@@ -67,6 +67,11 @@ export function ProduceTable({ produceList }: { produceList: Produce[] }) {
           ))}
         </TableBody>
       </Table>
+      {produceList.some((item) => item.storageSpoilageProbability !== undefined) && (
+        <p className="px-4 py-2 text-xs text-muted-foreground border-t border-border">
+          Storage risk is a synthetic model estimate — not field validated.
+        </p>
+      )}
     </div>
   );
 }

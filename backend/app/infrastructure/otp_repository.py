@@ -12,7 +12,7 @@ from app.infrastructure.models import OTPCodeModel
 def _to_entity(model: OTPCodeModel) -> OTPCode:
     return OTPCode(
         id=model.id,
-        phone_number=model.phone_number,
+        identifier=model.identifier,
         code=model.code,
         expires_at=model.expires_at,
         used=model.used,
@@ -24,19 +24,19 @@ class SqlAlchemyOTPRepository(OTPRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def create_otp(self, *, phone_number: str, code: str, expires_at: datetime) -> None:
+    async def create_otp(self, *, identifier: str, code: str, expires_at: datetime) -> None:
         model = OTPCodeModel(
-            phone_number=phone_number,
+            identifier=identifier,
             code=code,
             expires_at=expires_at,
         )
         self._session.add(model)
         await self._session.commit()
 
-    async def get_latest_unused_otp(self, phone_number: str) -> OTPCode | None:
+    async def get_latest_unused_otp(self, identifier: str) -> OTPCode | None:
         result = await self._session.execute(
             select(OTPCodeModel)
-            .where(OTPCodeModel.phone_number == phone_number, OTPCodeModel.used == False)
+            .where(OTPCodeModel.identifier == identifier, OTPCodeModel.used == False)
             .order_by(OTPCodeModel.created_at.desc())
             .limit(1)
         )
@@ -50,10 +50,10 @@ class SqlAlchemyOTPRepository(OTPRepository):
         model.used = True
         await self._session.commit()
 
-    async def count_recent_requests(self, phone_number: str, since: datetime) -> int:
+    async def count_recent_requests(self, identifier: str, since: datetime) -> int:
         result = await self._session.execute(
             select(func.count(OTPCodeModel.id)).where(
-                OTPCodeModel.phone_number == phone_number,
+                OTPCodeModel.identifier == identifier,
                 OTPCodeModel.created_at >= since,
             )
         )

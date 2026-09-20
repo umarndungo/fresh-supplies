@@ -12,10 +12,10 @@ router = APIRouter(prefix="/produce", tags=["produce"])
 
 @router.get("")
 async def list_produce(
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: ProduceService = Depends(get_produce_service),
 ):
-    produce = await service.list_produce()
+    produce = await service.list_produce(actor=current_user)
     return {"data": [ProduceOut.model_validate(p).model_dump(by_alias=True) for p in produce]}
 
 
@@ -44,10 +44,10 @@ async def create_produce(
 @router.get("/{produce_id}")
 async def get_produce(
     produce_id: UUID,
-    _current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
     service: ProduceService = Depends(get_produce_service),
 ):
-    produce = await service.get_produce(produce_id)
+    produce = await service.get_produce(produce_id, actor=current_user)
     return {"data": ProduceOut.model_validate(produce).model_dump(by_alias=True)}
 
 
