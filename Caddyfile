@@ -1,6 +1,30 @@
-api.132.145.69.180.sslip.io {
-    reverse_proxy backend:8000
+# Single origin, path-routed: frontend and backend behind one hostname so
+# browser calls to /api/v1/* are same-origin (no CORS). TLS is terminated by
+# Cloudflare's edge (see the cloudflared service in docker-compose.yml) —
+# this box only ever speaks plain HTTP, so there's no ACME/certificate
+# config here and no domain requirement.
+:80 {
+	# FastAPI's own routes: the versioned API, plus its built-in interactive
+	# docs (Swagger UI / ReDoc) and raw OpenAPI schema — none of these are
+	# under /api/v1, so they need their own match instead of falling through
+	# to the frontend.
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+	handle /docs* {
+		reverse_proxy backend:8000
+	}
+	handle /redoc* {
+		reverse_proxy backend:8000
+	}
+	handle /openapi.json {
+		reverse_proxy backend:8000
+	}
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		reverse_proxy frontend:3000
+	}
 }
-#app.132.145.69.180.sslip.io {
-#    reverse_proxy frontend:3000
-#}
