@@ -11,7 +11,7 @@ not need a live database; the 401 path overrides get_db_session with a dummy
 session so the dependency graph resolves without connecting to Postgres.
 """
 
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import json
 from uuid import uuid4
 
@@ -179,3 +179,62 @@ def test_recommend_market_unknown_crop_authed(as_authenticated):
     resp = client.post("/api/v1/ml/recommend-market", json=payload)
     assert resp.status_code == 422  # unknown crop -> clean MLServiceError response
     assert "message" in resp.json()
+
+
+# ── Phase 3: storage → transit spoilage wiring ──────────────────────
+#
+# Verifies the harvest -> storage -> shipment risk chain end to end against
+# the real trained model artifact (no mocking) — the thing worth regression-
+# testing is that storage conditions actually move the number a user sees,
+# not just that the plumbing exists. See backend/docs/multitenancy_design.md
+# for the unrelated tenancy work; this is the separate ML-wiring track from
+# the implementation plan's Phase 3.
+
+
+def test_storage_spoilage_worsens_with_age_and_heat(as_authenticated):
+    """A produce lot harvested recently in cool storage should score lower
+    storage risk than one harvested days ago sitting in hot storage."""
+    fresh = {
+        "crop_type": "Tomatoes",
+        "harvest_date": datetime.now(timezone.utc).isoformat(),
+        "storage_temperature_c": 8.0,
+        "storage_pressure_psi": 30.0,
+        "quality_grade": "A",
+        "quantity_kg": 100.0,
+    }
+    stale = {
+        **fresh,
+        "harvest_date": (datetime.now(timezone.utc) - timedelta(days=4)).isoformat(),
+        "storage_temperature_c": 32.0,
+    }
+
+    fresh_resp = client.post("/api/v1/ml/predict-storage-spoilage", json=fresh)
+    stale_resp = client.post("/api/v1/ml/predict-storage-spoilage", json=stale)
+    assert fresh_resp.status_code == 200, fresh_resp.text
+    assert stale_resp.status_code == 200, stale_resp.text
+
+    fresh_body, stale_body = fresh_resp.json(), stale_resp.json()
+    assert stale_body["storage_spoilage_probability"] > fresh_body["storage_spoilage_probability"]
+    assert stale_body["estimated_shelf_life_days"] < fresh_body["estimated_shelf_life_days"]
+
+
+def test_predict_spoilage_total_reflects_storage_risk_not_just_transit(as_authenticated):
+    """The whole point of the storage-snapshot wiring: two shipments with
+    identical transit conditions but different storage_spoilage_probability
+    (as would be snapshotted from the produce lot at scheduling time) must
+    produce different total risk — if storage_spoilage_probability were
+    silently dropped somewhere in the pipeline, these would be equal."""
+    low_storage_risk = {**SPOILAGE_PAYLOAD, "storage_spoilage_probability": 0.0}
+    high_storage_risk = {**SPOILAGE_PAYLOAD, "storage_spoilage_probability": 0.8}
+
+    low_resp = client.post("/api/v1/ml/predict-spoilage", json=low_storage_risk)
+    high_resp = client.post("/api/v1/ml/predict-spoilage", json=high_storage_risk)
+    assert low_resp.status_code == 200, low_resp.text
+    assert high_resp.status_code == 200, high_resp.text
+
+    low_body, high_body = low_resp.json(), high_resp.json()
+    assert high_body["spoilage_probability"] > low_body["spoilage_probability"]
+    assert high_body["total_spoilage_probability"] == high_body["spoilage_probability"]
+    # transit_spoilage_probability alone should NOT already equal the total —
+    # otherwise storage_spoilage_probability had no effect at all.
+    assert high_body["transit_spoilage_probability"] != high_body["total_spoilage_probability"]

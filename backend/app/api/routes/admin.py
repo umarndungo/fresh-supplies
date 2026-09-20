@@ -37,10 +37,11 @@ async def create_user(
 ):
     user = await service.create_user(
         email=payload.email,
-        password=payload.password,
         full_name=payload.full_name,
         role=payload.role,
         organization_name=payload.organization_name,
+        cooperative_id=payload.cooperative_id,
+        cooperative_role=payload.cooperative_role,
     )
     return {"data": _serialize(user)}
 
@@ -58,6 +59,8 @@ async def update_user(
         role=payload.role,
         is_active=payload.is_active,
         reset_password=payload.reset_password,
+        cooperative_id=payload.cooperative_id,
+        cooperative_role=payload.cooperative_role,
     )
     return {"data": _serialize(user)}
 

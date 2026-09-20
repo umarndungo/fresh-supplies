@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { ArrowUpDown, Filter, DollarSign, BarChart2, Info } from "lucide-react";
+import { ArrowUpDown, Filter, DollarSign, BarChart2, Info, ShieldAlert } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -21,6 +21,9 @@ import {
   Cell,
 } from "recharts";
 import { KENYAN_MARKETS, CROP_BASE_PRICE_KES, type Market } from "@/components/map/kenyan-markets";
+import { useProduce } from "@/hooks/use-produce";
+import { useAuthContext } from "@/context/auth-context";
+import { EmptyState } from "@/components/common/empty-state";
 
 const CROPS = Object.keys(CROP_BASE_PRICE_KES).sort();
 
@@ -32,6 +35,12 @@ interface MarketPriceRow {
 export default function MarketInsightsPage() {
   const [selectedCrop, setSelectedCrop] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<{ key: string; direction: "asc" | "desc" }>({ key: "marketName", direction: "asc" });
+  const { data: produce, isLoading: isProduceLoading } = useProduce();
+  const { user } = useAuthContext();
+
+  if (!isProduceLoading && (user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") && produce?.length === 0) {
+    return <div className="space-y-6"><PageHeader title="Market Insights" description="Current calibrated market prices across 10 Kenyan wholesale markets." /><EmptyState icon={ShieldAlert} title="No cooperatives assigned yet — ask an administrator to grant you access" /></div>;
+  }
 
   // Generate market price data (using base prices + regional variation)
   const marketPriceData = useMemo((): MarketPriceRow[] => {

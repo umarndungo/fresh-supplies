@@ -2,7 +2,7 @@
 
 import { useAuthContext } from "@/context/auth-context";
 import type { UserRole } from "@/types/auth.types";
-import { Truck, Warehouse, BarChart2, Route, Package, Users, MapPin, AlertTriangle, DollarSign, TrendingUp } from "lucide-react";
+import { Truck, Warehouse, BarChart2, Route, Package, Users, MapPin, AlertTriangle, DollarSign, TrendingUp, Building2, KeyRound } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -21,17 +21,17 @@ const ROLE_CONFIG: Record<UserRole, {
   sections: { title: string; items: { label: string; href: string; description: string; icon: React.ComponentType<{ className?: string }> }[] }[];
 }> = {
   ADMINISTRATOR: {
-    title: "System Overview",
-    description: "Full platform visibility and administration",
+    title: "Tenant Administration",
+    description: "Manage tenants, team access, and platform grants",
     primaryActions: [
       { label: "Manage Users", href: "/dashboard/admin/users", icon: Users },
-      { label: "View All Shipments", href: "/dashboard/shipments", icon: Truck },
-      { label: "System Analytics", href: "/dashboard/analytics", icon: BarChart2 },
+      { label: "Manage Tenants", href: "/dashboard/admin/tenants", icon: Building2 },
+      { label: "Manage Access Grants", href: "/dashboard/admin/grants", icon: KeyRound },
     ],
     quickStats: [
       { label: "Total Users", value: "—", icon: Users, color: "text-blue-600" },
-      { label: "Active Shipments", value: "—", icon: Truck, color: "text-green-600" },
-      { label: "System Health", value: "OK", icon: TrendingUp, color: "text-emerald-600" },
+      { label: "Tenants", value: "—", icon: Building2, color: "text-green-600" },
+      { label: "Access Grants", value: "—", icon: KeyRound, color: "text-emerald-600" },
     ],
     sections: [
       {
@@ -41,18 +41,10 @@ const ROLE_CONFIG: Record<UserRole, {
         ],
       },
       {
-        title: "Operations",
+        title: "Tenant Access",
         items: [
-          { label: "All Shipments", href: "/dashboard/shipments", description: "Track all shipments", icon: Truck },
-          { label: "Produce Inventory", href: "/dashboard/produce", description: "System-wide inventory", icon: Warehouse },
-          { label: "Route Optimization", href: "/dashboard/routes", description: "Manage routes", icon: Route },
-        ],
-      },
-      {
-        title: "Insights",
-        items: [
-          { label: "Analytics", href: "/dashboard/analytics", description: "Platform analytics", icon: BarChart2 },
-          { label: "Reports", href: "/dashboard/reports", description: "Generate reports", icon: DollarSign },
+          { label: "Tenants", href: "/dashboard/admin/tenants", description: "Manage tenant lifecycle and usage", icon: Building2 },
+          { label: "Access Grants", href: "/dashboard/admin/grants", description: "Grant staff access to tenants", icon: KeyRound },
         ],
       },
     ],
@@ -169,6 +161,16 @@ sections: [
         },
     ],
   },
+  DRIVER: {
+    title: "Driver Dashboard",
+    description: "View assigned deliveries and shipment details",
+    primaryActions: [{ label: "View Shipments", href: "/dashboard/shipments", icon: Truck }],
+    quickStats: [{ label: "Assigned Shipments", value: "—", icon: Truck, color: "text-blue-600" }],
+    sections: [{
+      title: "Deliveries",
+      items: [{ label: "Assigned Shipments", href: "/dashboard/shipments", description: "Review your assigned deliveries", icon: Truck }],
+    }],
+  },
 };
 
 export function RoleDashboard() {
@@ -176,8 +178,8 @@ export function RoleDashboard() {
   const role = user?.role ?? "ADMINISTRATOR";
   const config = ROLE_CONFIG[role];
 
-  const { data: shipments, isLoading: isShipmentsLoading } = useShipments();
-  const { data: produce, isLoading: isProduceLoading } = useProduce();
+  const { data: shipments, isLoading: isShipmentsLoading } = useShipments({ enabled: role !== "ADMINISTRATOR" });
+  const { data: produce, isLoading: isProduceLoading } = useProduce({ enabled: role !== "ADMINISTRATOR" });
 
   const totalShipments = shipments?.length ?? 0;
   const inTransitCount = shipments?.filter((s) => s.status === "IN_TRANSIT").length ?? 0;

@@ -60,7 +60,7 @@ export function LandingNavbar({ isAuthenticated = false }: LandingNavbarProps) {
                 <Link href={ROUTES.login}>Sign in</Link>
               </Button>
               <Button asChild className="gap-1.5 shadow-sm">
-                <Link href={ROUTES.register}>
+                <Link href={ROUTES.login}>
                   Get Started
                   <ArrowRight className="size-4" />
                 </Link>
@@ -111,7 +111,7 @@ export function LandingNavbar({ isAuthenticated = false }: LandingNavbarProps) {
                     <Link href={ROUTES.login}>Sign in</Link>
                   </Button>
                   <Button asChild className="w-full gap-1.5">
-                    <Link href={ROUTES.register}>
+                    <Link href={ROUTES.login}>
                       Get Started
                       <ArrowRight className="size-4" />
                     </Link>

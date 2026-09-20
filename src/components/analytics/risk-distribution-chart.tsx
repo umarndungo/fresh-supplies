@@ -2,12 +2,15 @@
 
 import { useMemo } from "react";
 import {
-  PieChart,
-  Pie,
+  BarChart,
+  Bar,
   Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  Legend,
+  LabelList,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Shipment } from "@/types/shipment.types";
@@ -87,52 +90,44 @@ export function RiskDistributionChart({ shipments }: { shipments: Shipment[] }) 
         <CardTitle>Risk Tier Distribution</CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="h-64 flex flex-col">
-          <div className="flex-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={data}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={100}
-                  paddingAngle={2}
-                  dataKey="count"
-                  nameKey="tier"
-                  label={({ name, percent }) => {
-                    const tierName = String(name);
-                    const p = percent ?? 0;
-                    return `${TIER_LABELS[tierName]} ${(p * 100).toFixed(1)}%`;
-                  }}
-                  labelLine={false}
-                >
-                  {data.map((entry, index: number) => (
-                    <Cell key={`cell-${index}`} fill={TIER_COLORS[entry.tier]} />
-                  ))}
-                </Pie>
-                <Tooltip
-                  formatter={(value, name) => {
-                    const val = (value as number) ?? 0;
-                    const tierName = String(name);
-                    return [val.toString(), `${TIER_LABELS[tierName]}: ${val} shipments`];
+        <div className="h-64">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart
+              data={data}
+              layout="vertical"
+              margin={{ top: 5, right: 70, left: 8, bottom: 5 }}
+              barCategoryGap="30%"
+            >
+              <CartesianGrid strokeDasharray="3 3" opacity={0.3} horizontal={false} />
+              <XAxis type="number" allowDecimals={false} />
+              <YAxis
+                type="category"
+                dataKey="tier"
+                width={110}
+                tickFormatter={(tier: string) => TIER_LABELS[tier] ?? tier}
+              />
+              <Tooltip
+                formatter={(value, _name, item) => {
+                  const val = (value as number) ?? 0;
+                  const pct = (item?.payload as RiskDistributionDataPoint | undefined)?.percentage ?? 0;
+                  return [`${val} shipments (${pct.toFixed(1)}%)`, "Count"];
+                }}
+                labelFormatter={(tier) => TIER_LABELS[String(tier)] ?? String(tier)}
+              />
+              <Bar dataKey="count" radius={[0, 4, 4, 0]}>
+                {data.map((entry, index: number) => (
+                  <Cell key={`cell-${index}`} fill={TIER_COLORS[entry.tier]} />
+                ))}
+                <LabelList
+                  position="right"
+                  valueAccessor={(entry) => {
+                    const payload = entry.payload as RiskDistributionDataPoint;
+                    return `${payload.count} (${payload.percentage.toFixed(1)}%)`;
                   }}
                 />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="flex justify-center gap-6 mt-4 text-sm">
-            {data.map((entry) => (
-              <div key={entry.tier} className="flex items-center gap-1.5">
-                <span
-                  className="w-3 h-3 rounded-full"
-                  style={{ backgroundColor: TIER_COLORS[entry.tier] }}
-                />
-                <span>{TIER_LABELS[entry.tier]}: {entry.count}</span>
-              </div>
-            ))}
-          </div>
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
         </div>
         <p className="text-xs text-muted-foreground mt-2">
           {totalWithPrediction} of {shipments.length} shipments have predictions. Threshold: {">15% = spoiled"}.

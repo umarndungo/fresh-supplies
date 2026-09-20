@@ -53,7 +53,9 @@ class StubAdminService:
     async def list_users(self):
         return list(self._users.values())
 
-    async def create_user(self, *, email, password, full_name, role, organization_name):
+    async def create_user(
+        self, *, email, full_name, role, organization_name, cooperative_id=None, cooperative_role=None
+    ):
         if any(u.email == email for u in self._users.values()):
             raise ConflictError("An account with this email already exists.", field="email")
         user = _user(role)
@@ -61,21 +63,33 @@ class StubAdminService:
             id=user.id,
             email=email,
             full_name=full_name,
-            hashed_password=password,
+            hashed_password="pending_invite_no_password",
             role=role,
             organization_name=organization_name,
             avatar_url=None,
             created_at=datetime.now(timezone.utc),
             phone_number=None,
             account_type=None,
-            cooperative_id=None,
+            cooperative_id=cooperative_id,
+            cooperative_role=cooperative_role,
             phone_verified=False,
-            profile_completed=True,
+            profile_completed=False,
             is_active=True,
         )
         return self._users[user.id]
 
-    async def update_user(self, user_id, *, full_name=None, organization_name=None, role=None, is_active=None, reset_password=None):
+    async def update_user(
+        self,
+        user_id,
+        *,
+        full_name=None,
+        organization_name=None,
+        role=None,
+        is_active=None,
+        reset_password=None,
+        cooperative_id=None,
+        cooperative_role=None,
+    ):
         from app.core.exceptions import NotFoundError
 
         if user_id not in self._users:
@@ -89,6 +103,8 @@ class StubAdminService:
             organization_name=organization_name if organization_name is not None else user.organization_name,
             role=role or user.role,
             is_active=user.is_active if is_active is None else is_active,
+            cooperative_id=cooperative_id if cooperative_id is not None else user.cooperative_id,
+            cooperative_role=cooperative_role if cooperative_role is not None else user.cooperative_role,
         )
         return self._users[user_id]
 
@@ -146,7 +162,6 @@ def test_create_user(as_admin):
         json={
             "fullName": "Grace Gathoni",
             "email": "grace@example.com",
-            "password": "Grace123!",
             "role": "MARKET_ANALYST",
             "organizationName": "Nyeri Coop",
         },
@@ -165,7 +180,6 @@ def test_create_user_duplicate_email_conflict(as_admin):
         json={
             "fullName": "Grace Gathoni",
             "email": "grace@example.com",
-            "password": "Grace123!",
             "role": "MARKET_ANALYST",
         },
     )
@@ -175,7 +189,6 @@ def test_create_user_duplicate_email_conflict(as_admin):
         json={
             "fullName": "Grace Gathoni",
             "email": "grace@example.com",
-            "password": "Grace123!",
             "role": "MARKET_ANALYST",
         },
     )
@@ -189,7 +202,6 @@ def test_update_user_deactivate_and_reactivate(as_admin, admin_user):
         json={
             "fullName": "Paul Mwangi",
             "email": "paul@example.com",
-            "password": "Paul123!",
             "role": "FARMER_COOPERATIVE",
         },
     ).json()["data"]
@@ -212,7 +224,6 @@ def test_delete_user(as_admin, admin_user):
         json={
             "fullName": "Ann Wanjiru",
             "email": "ann@example.com",
-            "password": "Ann1234!",
             "role": "MARKET_ANALYST",
         },
     ).json()["data"]

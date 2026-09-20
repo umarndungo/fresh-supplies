@@ -31,8 +31,8 @@ services:
     build: ./backend
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-migrate:
+        condition: service_completed_successfully
     env_file:
       - ./backend/.env
     environment:
@@ -41,7 +41,7 @@ services:
       DB_USER: ${DB_USER:-freshrouteadmin}
       DB_PASS: ${DB_PASS:-freshroute@2120}
     ports:
-      - "8000:8000"
+      - "8001:8000"
     volumes:
       - ./backend:/app:z
       - ./post_harvest_data_engine:/post_harvest_data_engine:ro,z
@@ -60,14 +60,15 @@ services:
       context: .
     command: sh -c "npm run build && npm start"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8001/api/v1}
       NEXT_PUBLIC_APP_NAME: ${NEXT_PUBLIC_APP_NAME:-Fresh Supplies}
-      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3000}
+      NEXT_PUBLIC_APP_URL: ${NEXT_PUBLIC_APP_URL:-http://localhost:3001}
       NEXT_PUBLIC_DEV_AUTH_BYPASS: ${NEXT_PUBLIC_DEV_AUTH_BYPASS:-false}
     ports:
-      - "3000:3000"
+      - "3001:3000"
     volumes:
       - .:/app:z
       - frontend_node_modules:/app/node_modules
@@ -86,11 +87,13 @@ services:
       - caddy_data:/data
     restart: unless-stopped
 
-  # One-shot: provision role/db/grants/ownership on EXISTING postgres volumes.
-  #   docker compose run --rm db-bootstrap    (or ./db/bootstrap.sh)
+  # One-shot: provision role/db/grants/ownership. Runs automatically on every
+  # `docker compose up` (idempotent — see db/init/provision.sh), so a fresh
+  # or pre-existing volume both end up correctly provisioned with no manual
+  # step. Still runnable standalone: `docker compose run --rm db-bootstrap`
+  # (or ./db/bootstrap.sh, or `make bootstrap`).
   db-bootstrap:
     image: postgres:16-alpine
-    profiles: ["tools"]
     depends_on:
       postgres:
         condition: service_healthy
@@ -105,15 +108,20 @@ services:
     volumes:
       - ./db/init/provision.sh:/provision.sh:ro,z
     entrypoint: ["/bin/sh", "/provision.sh"]
+    restart: "no"
 
   # One-shot: run Alembic migrations as the app user (`alembic upgrade head`).
-  #   docker compose run --rm db-migrate
+  # Runs automatically on every `docker compose up`, after db-bootstrap and
+  # before `backend` starts (see backend's depends_on below) — new migration
+  # files (e.g. the multi-tenancy / driver-role / OTP-email ones added this
+  # sprint) are picked up with zero manual steps on next `docker compose up`.
+  # Still runnable standalone: `docker compose run --rm db-migrate` (or
+  # `make migrate`).
   db-migrate:
     build: ./backend
-    profiles: ["tools"]
     depends_on:
-      postgres:
-        condition: service_healthy
+      db-bootstrap:
+        condition: service_completed_successfully
     environment:
       DB_HOST: postgres
       DB_NAME: ${DB_NAME:-freshroute}
@@ -123,6 +131,7 @@ services:
     command: ["alembic", "upgrade", "head"]
     volumes:
       - ./backend:/app:z
+    restart: "no"
 
 volumes:
   postgres_data:

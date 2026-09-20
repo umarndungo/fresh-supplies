@@ -89,6 +89,8 @@ export function CreateShipmentDialog() {
       harvestDateSnapshot: selectedProduce?.harvestDate,
       storageSpoilageProbabilitySnapshot: selectedProduce?.storageSpoilageProbability,
       estimatedShelfLifeDaysSnapshot: selectedProduce?.estimatedShelfLifeDays,
+      storageTemperatureCSnapshot: selectedProduce?.storageTemperatureC,
+      storagePressurePsiSnapshot: selectedProduce?.storagePressurePsi,
     };
     try {
       await createShipment.mutateAsync(payload);

@@ -14,6 +14,8 @@ class SpoilageRequest(BaseModel):
     quantity_kg: float = Field(100.0, gt=0)
     harvest_age_hours: float = Field(0.0, ge=0, le=8760)
     storage_spoilage_probability: float = Field(0.0, ge=0, le=1)
+    storage_temperature_c: float | None = Field(None, ge=-20, le=60)
+    storage_pressure_psi: float | None = Field(None, ge=0)
 
 
 class StorageSpoilageRequest(BaseModel):

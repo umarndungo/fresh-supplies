@@ -1,7 +1,9 @@
 export const API_ENDPOINTS = {
   auth: {
     login: "/auth/login",
-    register: "/auth/register",
+    otpRequest: "/auth/otp/request",
+    otpVerify: "/auth/otp/verify",
+    setPassword: "/auth/set-password",
     refresh: "/auth/refresh",
     logout: "/auth/logout",
     me: "/auth/me",
@@ -27,6 +29,22 @@ export const API_ENDPOINTS = {
     users: {
       base: "/admin/users",
       byId: (id: string) => `/admin/users/${id}`,
+    },
+    tenants: {
+      base: "/admin/tenants",
+      byId: (id: string) => `/admin/tenants/${id}`,
+      usage: "/admin/tenants/usage",
+      usageById: (id: string) => `/admin/tenants/${id}/usage`,
+      grants: (id: string) => `/admin/tenants/${id}/grants`,
+    },
+    grants: {
+      base: "/admin/grants",
+      byId: (id: string) => `/admin/grants/${id}`,
+    },
+  },
+  cooperative: {
+    members: {
+      base: "/cooperative/members",
     },
   },
   mobile: {

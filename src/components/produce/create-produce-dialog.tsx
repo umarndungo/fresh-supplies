@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogBody, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { createProduceSchema, type CreateProduceFormValues } from "@/lib/validators/produce.schema";
 import { useCreateProduce, useUpdateProduce } from "@/hooks/use-produce";
 import type { Produce, UpdateProducePayload } from "@/types/produce.types";
@@ -98,7 +98,8 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
           </DialogDescription>
         </DialogHeader>
         <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden" noValidate>
+          <DialogBody className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
@@ -226,7 +227,7 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Storage temperature (°C)</FormLabel>
-                    <FormControl><Input type="number" step="any" placeholder="22" {...field} /></FormControl>
+                    <FormControl><Input type="number" step="any" placeholder="22" {...field} value={field.value ?? ""} /></FormControl>
                     <FormDescription>Used to estimate storage spoilage risk.</FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -238,13 +239,14 @@ export function CreateProduceDialog({ initialData, onSuccess }: CreateProduceDia
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Storage pressure (PSI)</FormLabel>
-                    <FormControl><Input type="number" step="any" placeholder="30" {...field} /></FormControl>
+                    <FormControl><Input type="number" step="any" placeholder="30" {...field} value={field.value ?? ""} /></FormControl>
                     <FormDescription>Packaging or stacking pressure.</FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
               />
             </div>
+          </DialogBody>
             <DialogFooter>
               {isEditing && (
                 <Button type="button" variant="outline" onClick={() => handleOpenChange(false)}>
@@ -309,7 +311,8 @@ export function EditProduceTrigger({ produce, onSuccess }: { produce: Produce; o
             </DialogDescription>
           </DialogHeader>
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4" noValidate>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-1 flex-col overflow-hidden" noValidate>
+            <DialogBody className="space-y-4">
               <div className="grid gap-4 sm:grid-cols-2">
                 <FormField
                   control={form.control}
@@ -430,6 +433,7 @@ export function EditProduceTrigger({ produce, onSuccess }: { produce: Produce; o
                   </FormItem>
                 )}
               />
+            </DialogBody>
               <DialogFooter>
                 <Button type="button" variant="outline" onClick={() => setOpen(false)}>
                   Cancel

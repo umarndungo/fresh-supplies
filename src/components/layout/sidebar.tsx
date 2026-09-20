@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Logo } from "@/components/common/logo";
-import { NAV_SECTIONS } from "@/config/navigation";
+import { NAV_SECTIONS, isNavItemVisible } from "@/config/navigation";
 import { useAuthContext } from "@/context/auth-context";
 import { cn } from "@/lib/utils";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -22,7 +22,7 @@ export function Sidebar() {
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-6">
           {NAV_SECTIONS.map((section) => {
-            const items = section.items.filter((item) => !item.roles || (user && item.roles.includes(user.role)));
+            const items = section.items.filter((item) => isNavItemVisible(item, user));
             if (items.length === 0) return null;
             return (
               <div key={section.title} className="space-y-1">

@@ -8,7 +8,8 @@ export const SESSION_FLAG_COOKIE = "frs_session";
 export const ROUTES = {
   home: "/",
   login: "/login",
-  register: "/register",
+  otpLogin: "/login/otp",
+  setPassword: "/set-password",
   dashboard: "/dashboard",
 } as const;
 
@@ -17,6 +18,7 @@ export const ROLE_LABELS: Record<UserRole, string> = {
   LOGISTICS_MANAGER: "Logistics Manager",
   FARMER_COOPERATIVE: "Farmer Cooperative",
   MARKET_ANALYST: "Market Analyst",
+  DRIVER: "Driver",
 };
 
 export const ROLE_OPTIONS: { value: UserRole; label: string }[] = (

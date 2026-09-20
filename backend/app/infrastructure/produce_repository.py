@@ -1,9 +1,10 @@
+from typing import Iterable
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import false, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.domain.entities import CommodityClass, ProduceItem, ProduceStatus
+from app.domain.entities import CommodityClass, OwnerType, ProduceItem, ProduceStatus
 from app.domain.repositories import ProduceRepository
 from app.infrastructure.models import ProduceModel
 
@@ -19,6 +20,8 @@ def _to_entity(model: ProduceModel) -> ProduceItem:
         harvest_date=model.harvest_date,
         storage_location=model.storage_location,
         commodity_class=model.commodity_class,
+        owner_type=model.owner_type,
+        created_by=model.created_by,
         cooperative_id=model.cooperative_id,
         status=model.status,
         storage_temperature_c=model.storage_temperature_c,
@@ -36,8 +39,21 @@ class SqlAlchemyProduceRepository(ProduceRepository):
     def __init__(self, session: AsyncSession):
         self._session = session
 
-    async def list_all(self) -> list[ProduceItem]:
-        result = await self._session.execute(select(ProduceModel).order_by(ProduceModel.created_at.desc()))
+    async def list_all(
+        self, *, owner_id: UUID | None = None, cooperative_ids: Iterable[UUID] | None = None
+    ) -> list[ProduceItem]:
+        query = select(ProduceModel).order_by(ProduceModel.created_at.desc())
+        cooperative_ids = list(cooperative_ids) if cooperative_ids is not None else None
+        if owner_id is not None or cooperative_ids is not None:
+            # Tenant scoping (backend/docs/multitenancy_design.md §4) — same
+            # shape as ShipmentRepository.list_all.
+            conditions = []
+            if owner_id is not None:
+                conditions.append(ProduceModel.created_by == owner_id)
+            if cooperative_ids:
+                conditions.append(ProduceModel.cooperative_id.in_(cooperative_ids))
+            query = query.where(or_(*conditions)) if conditions else query.where(false())
+        result = await self._session.execute(query)
         return [_to_entity(m) for m in result.scalars().all()]
 
     async def get_by_id(self, produce_id: UUID) -> ProduceItem | None:
@@ -55,8 +71,10 @@ class SqlAlchemyProduceRepository(ProduceRepository):
         harvest_date,
         storage_location: str,
         commodity_class: CommodityClass,
-        cooperative_id: UUID,
+        created_by: UUID,
+        owner_type: OwnerType,
         status: ProduceStatus,
+        cooperative_id: UUID | None = None,
         storage_temperature_c: float | None = None,
         storage_pressure_psi: float | None = None,
     ) -> ProduceItem:
@@ -69,6 +87,8 @@ class SqlAlchemyProduceRepository(ProduceRepository):
             harvest_date=harvest_date,
             storage_location=storage_location,
             commodity_class=commodity_class,
+            created_by=created_by,
+            owner_type=owner_type,
             cooperative_id=cooperative_id,
             status=status,
             storage_temperature_c=storage_temperature_c,

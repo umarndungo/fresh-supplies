@@ -14,10 +14,13 @@ export default function LoginPage() {
       </div>
       <LoginForm />
       <p className="text-center text-sm text-muted-foreground">
-        Don&apos;t have an account?{" "}
-        <Link href={ROUTES.register} className="font-medium text-primary hover:underline">
-          Create one
+        First time signing in?{" "}
+        <Link href={ROUTES.otpLogin} className="font-medium text-primary hover:underline">
+          Email me a sign-in code
         </Link>
+      </p>
+      <p className="text-center text-sm text-muted-foreground">
+        Don&apos;t have an account? Contact your administrator to get added.
       </p>
     </div>
   );

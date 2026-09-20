@@ -33,6 +33,8 @@ export interface Shipment {
   harvestDateSnapshot?: string;
   storageSpoilageProbabilitySnapshot?: number;
   estimatedShelfLifeDaysSnapshot?: number;
+  storageTemperatureCSnapshot?: number;
+  storagePressurePsiSnapshot?: number;
 }
 
 export interface CreateShipmentPayload {
@@ -56,6 +58,8 @@ export interface CreateShipmentPayload {
   harvestDateSnapshot?: string;
   storageSpoilageProbabilitySnapshot?: number;
   estimatedShelfLifeDaysSnapshot?: number;
+  storageTemperatureCSnapshot?: number;
+  storagePressurePsiSnapshot?: number;
 }
 
 export interface UpdateShipmentPayload {
