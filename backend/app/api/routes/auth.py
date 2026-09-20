@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, Request, Response
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.deps import get_auth_service, get_current_user, get_otp_service
 from app.application.auth_service import AuthService
@@ -11,9 +12,12 @@ from app.application.schemas import (
     SetPasswordRequest,
     UserOut,
 )
+from app.application.tenancy import scope_for
 from app.core.config import settings
 from app.core.exceptions import UnauthorizedError
-from app.domain.entities import User
+from app.domain.entities import User, UserRole
+from app.infrastructure.cooperative_access_grant_repository import SqlAlchemyCooperativeAccessGrantRepository
+from app.infrastructure.db import get_db_session
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -124,5 +128,17 @@ async def logout(response: Response) -> None:
 
 
 @router.get("/me")
-async def me(current_user: User = Depends(get_current_user)):
-    return {"data": UserOut.model_validate(current_user).model_dump(by_alias=True)}
+async def me(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_db_session),
+):
+    data = UserOut.model_validate(current_user).model_dump(by_alias=True)
+    if current_user.role in (UserRole.LOGISTICS_MANAGER, UserRole.MARKET_ANALYST):
+        # Lets the frontend tell "no cooperative access granted yet" apart
+        # from "granted, but that cooperative just has no data yet" — both
+        # look identical as an empty shipments/produce list, but only one of
+        # them is actually an access problem.
+        grants = SqlAlchemyCooperativeAccessGrantRepository(session)
+        scope = await scope_for(current_user, grants)
+        data["hasCooperativeAccess"] = len(scope.cooperative_ids) > 0
+    return {"data": data}

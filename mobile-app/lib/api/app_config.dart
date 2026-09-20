@@ -11,19 +11,19 @@
 /// box). Once a real domain is in the picture, a named tunnel gives this a
 /// fixed hostname and this override becomes a one-time value instead of a
 /// per-restart one.
+///
+/// Falling back to a syntactically-valid-but-unreachable placeholder (rather
+/// than throwing) matters for `flutter test`'s widget smoke tests, which
+/// boot the real app — and therefore construct [ApiClient] — without ever
+/// passing this define; they never make a real request, so there's nothing
+/// for a live default to protect them against. A real build made without
+/// the define now fails loudly with connection errors against
+/// `unconfigured.invalid` instead of silently hitting a stale dead tunnel.
 class AppConfig {
   AppConfig._();
 
   static const _override = String.fromEnvironment('API_BASE_URL');
+  static const _unconfigured = 'https://unconfigured.invalid/api/v1';
 
-  static String get apiBaseUrl {
-    if (_override.isEmpty) {
-      throw StateError(
-        'API_BASE_URL was not set. Build with '
-        '--dart-define=API_BASE_URL=https://<current-tunnel-host>/api/v1 '
-        '(see docker compose logs cloudflared on the deploy box).',
-      );
-    }
-    return _override;
-  }
+  static String get apiBaseUrl => _override.isNotEmpty ? _override : _unconfigured;
 }

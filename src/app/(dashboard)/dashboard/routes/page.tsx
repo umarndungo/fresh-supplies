@@ -75,7 +75,10 @@ export default function RoutesPage() {
     );
   }
 
-  if ((user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") && shipments?.length === 0) {
+  if (
+    (user?.role === "LOGISTICS_MANAGER" || user?.role === "MARKET_ANALYST") &&
+    user.hasCooperativeAccess === false
+  ) {
     return <div className="space-y-6"><PageHeader title="Route Optimization" description="Visualize and optimize shipment routes across the network" /><EmptyState icon={ShieldAlert} title="No cooperatives assigned yet — ask an administrator to grant you access" /></div>;
   }
 
